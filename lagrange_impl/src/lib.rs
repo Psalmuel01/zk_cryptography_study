@@ -2,23 +2,23 @@ use ark_ff::PrimeField;
 use std::cmp::max;
 
 #[derive(Debug, Clone)]
-struct Polynomial<F: PrimeField> {
-    coefficients: Vec<F>, //ascending degree
+pub struct Polynomial<F: PrimeField> {
+    pub coefficients: Vec<F>, //ascending degree
 }
 
 impl<F: PrimeField> Polynomial<F> {
-    fn new(coefficients: Vec<F>) -> Self {
+    pub fn new(coefficients: Vec<F>) -> Self {
         Self { coefficients }
     }
 
-    fn evaluate(&self, x: F) -> F {
+    pub fn evaluate(&self, x: F) -> F {
         self.coefficients
             .iter()
             .enumerate()
             .map(|(i, &coef)| coef * x.pow([i as u64]))
             .sum()
     }
-    fn degree(&self) -> usize {
+    pub fn degree(&self) -> usize {
         self.coefficients
         .iter()
         .rposition(|&coeff| coeff != F::zero())
@@ -51,7 +51,7 @@ impl<F: PrimeField> Polynomial<F> {
         p.into_iter().map(|coef| coef * scalar).collect()
     }
 
-    fn interpolate(points: Vec<(F, F)>) -> Self {
+    pub fn interpolate(points: Vec<(F, F)>) -> Self {
         let mut result = vec![F::zero(); points.len()];
         for (i, &(x_i, y_i)) in points.iter().enumerate() {
             let mut l_i = vec![F::one()];

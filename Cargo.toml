@@ -1,2 +1,2 @@
 [workspace]
-members = ["lagrange_impl"]
+members = ["lagrange_impl", "shamir_secret_sharing"]
