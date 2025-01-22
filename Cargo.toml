@@ -1,0 +1,2 @@
+[workspace]
+members = ["lagrange_impl"]
