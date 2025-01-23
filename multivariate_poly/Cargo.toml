@@ -1,0 +1,10 @@
+[package]
+name = "multivariate_poly"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ark-bn254 = "0.5.0"
+ark-ff = "0.5.0"
+itertools = "0.14.0"
+lagrange_impl = {path = "../lagrange_impl"}

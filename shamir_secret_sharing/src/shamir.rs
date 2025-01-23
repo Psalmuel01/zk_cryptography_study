@@ -1,7 +1,7 @@
-use lagrange_impl::Polynomial;
 use ark_ff::PrimeField;
+use ark_std::test_rng;
+use lagrange_impl::Polynomial;
 use rand::seq::SliceRandom;
-use ark_std::test_rng;  
 
 fn generate_shares<F: PrimeField>(secret: F, n: usize, threshold: usize) -> Vec<(F, F)> {
     assert!(threshold <= n, "Threshold must be <= n");

@@ -25,7 +25,7 @@ impl<F: PrimeField> Polynomial<F> {
         .unwrap_or(0)
     }
 
-    fn add_polynomials(a: Vec<F>, b: Vec<F>) -> Vec<F> {
+    pub fn add_polynomials(a: Vec<F>, b: Vec<F>) -> Vec<F> {
         let max_len = max(a.len(), b.len());
         let mut result = vec![F::zero(); max_len];
         for i in 0..a.len() {
