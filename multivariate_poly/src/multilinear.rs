@@ -26,6 +26,7 @@ impl <F: PrimeField> MultilinearPolynomial<F> {
 }
 
 
+
 // fn main() {
 //     use ark_bn254::Fq;
 //     // Create a multilinear polynomial

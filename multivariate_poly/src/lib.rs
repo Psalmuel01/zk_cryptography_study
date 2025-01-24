@@ -1,2 +1,2 @@
 pub mod multilinear;
-pub mod hypercube;
+pub mod main;

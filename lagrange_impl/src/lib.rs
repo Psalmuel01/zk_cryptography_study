@@ -85,6 +85,22 @@ mod tests {
     }
 
     #[test]
+    fn test_add_polynomial() {
+        let poly1 = vec![Fq::from(7), Fq::from(3), Fq::from(2)];
+        let poly2 = vec![Fq::from(2), Fq::from(6), Fq::from(1)];
+        let result = Polynomial::add_polynomials(poly1, poly2);
+        assert_eq!(result, vec![Fq::from(9), Fq::from(9), Fq::from(3)]);
+    }
+
+    #[test]
+    fn test_multiply_polynomial() {
+        let poly1 = vec![Fq::from(1), Fq::from(1)];
+        let poly2 = vec![Fq::from(-1), Fq::from(1)];
+        let result = Polynomial::multiply_polynomials(poly1, poly2);
+        assert_eq!(result, vec![Fq::from(-1), Fq::from(0), Fq::from(1)]);
+    }
+
+    #[test]
     fn test_interpolate_known_points() {
         let points = vec![
             (Fq::from(0), Fq::from(0)),
