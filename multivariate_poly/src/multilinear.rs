@@ -5,7 +5,7 @@ pub struct MultilinearPolynomial<F: PrimeField> {
     pub terms: Vec<(Vec<usize>, F)>,
 }
 
-impl <F: PrimeField> MultilinearPolynomial<F> {
+impl<F: PrimeField> MultilinearPolynomial<F> {
     pub fn new() -> Self {
         Self { terms: Vec::new() }
     }
@@ -25,7 +25,28 @@ impl <F: PrimeField> MultilinearPolynomial<F> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use ark_bn254::Fq;
+    use crate::multilinear::MultilinearPolynomial;
 
+    #[test]
+    fn evaluate() {
+        let mut polynomial: MultilinearPolynomial<Fq> = MultilinearPolynomial::new();
+
+        // Add terms for P(x, y, z) = 3x + 2y + 5xy + 4z + 7xyz
+        polynomial.add_term(vec![0], Fq::from(3)); // 3x
+        polynomial.add_term(vec![1], Fq::from(2)); // 2y
+        polynomial.add_term(vec![0, 1], Fq::from(5)); // 5xy
+        polynomial.add_term(vec![2], Fq::from(4)); // 4z
+        polynomial.add_term(vec![0, 1, 2], Fq::from(7)); // 7xyz
+
+        assert_eq!(
+            polynomial.evaluate(&[Fq::from(1), Fq::from(1), Fq::from(1)]),
+            Fq::from(21)
+        );
+    }
+}
 
 // fn main() {
 //     use ark_bn254::Fq;
