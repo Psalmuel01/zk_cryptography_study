@@ -1,2 +1,2 @@
 [workspace]
-members = ["lagrange_impl", "multivariate_poly", "shamir_secret_sharing"]
+members = ["univariate_poly", "multivariate_poly", "shamir_secret_sharing", "sum_check"]

@@ -1,7 +1,7 @@
 use ark_ff::PrimeField;
 use ark_std::test_rng;
-use lagrange_impl::Polynomial;
 use rand::seq::SliceRandom;
+use univariate_poly::UnivariatePolynomial;
 
 fn generate_shares<F: PrimeField>(secret: F, n: usize, threshold: usize) -> Vec<(F, F)> {
     assert!(threshold <= n, "Threshold must be <= n");
@@ -13,7 +13,7 @@ fn generate_shares<F: PrimeField>(secret: F, n: usize, threshold: usize) -> Vec<
         coefficients.push(F::rand(&mut rng)); // Random coefficients in the field
     }
 
-    let polynomial = Polynomial::new(coefficients);
+    let polynomial = UnivariatePolynomial::new(coefficients);
 
     // Evaluate the polynomial at different x values
     let mut shares = Vec::new();
@@ -28,7 +28,7 @@ fn generate_shares<F: PrimeField>(secret: F, n: usize, threshold: usize) -> Vec<
 
 fn reconstruct_secret<F: PrimeField>(shares: &[(F, F)], threshold: usize) -> F {
     let points = &shares[..threshold];
-    let polynomial = Polynomial::interpolate(points.to_vec());
+    let polynomial = UnivariatePolynomial::interpolate(points.to_vec());
     print!("polyyyyyy: {:?}", polynomial);
     polynomial.evaluate(F::zero())
 }
@@ -60,7 +60,7 @@ mod tests {
             .cloned()
             .collect();
 
-        let polynomial = Polynomial::interpolate(selected_shares);
+        let polynomial = UnivariatePolynomial::interpolate(selected_shares);
         let recovered_secret = polynomial.evaluate(Fq::from(0));
         assert_eq!(recovered_secret, secret);
     }

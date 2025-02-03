@@ -2,11 +2,11 @@ use ark_ff::PrimeField;
 use std::cmp::max;
 
 #[derive(Debug, Clone)]
-pub struct Polynomial<F: PrimeField> {
+pub struct UnivariatePolynomial<F: PrimeField> {
     pub coefficients: Vec<F>, //ascending degree
 }
 
-impl<F: PrimeField> Polynomial<F> {
+impl<F: PrimeField> UnivariatePolynomial<F> {
     pub fn new(coefficients: Vec<F>) -> Self {
         Self { coefficients }
     }
@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn test_evaluate_polynomial() {
         let coefficients = vec![Fq::from(1), Fq::from(2), Fq::from(3)];
-        let polynomial = Polynomial::new(coefficients);
+        let polynomial = UnivariatePolynomial::new(coefficients);
 
         assert_eq!(polynomial.evaluate(Fq::from(0)), Fq::from(1));
         assert_eq!(polynomial.evaluate(Fq::from(1)), Fq::from(6));
@@ -88,7 +88,7 @@ mod tests {
     fn test_add_polynomial() {
         let poly1 = vec![Fq::from(7), Fq::from(3), Fq::from(2)];
         let poly2 = vec![Fq::from(2), Fq::from(6), Fq::from(1)];
-        let result = Polynomial::add_polynomials(poly1, poly2);
+        let result = UnivariatePolynomial::add_polynomials(poly1, poly2);
         assert_eq!(result, vec![Fq::from(9), Fq::from(9), Fq::from(3)]);
     }
 
@@ -96,7 +96,7 @@ mod tests {
     fn test_multiply_polynomial() {
         let poly1 = vec![Fq::from(1), Fq::from(1)];
         let poly2 = vec![Fq::from(-1), Fq::from(1)];
-        let result = Polynomial::multiply_polynomials(poly1, poly2);
+        let result = UnivariatePolynomial::multiply_polynomials(poly1, poly2);
         assert_eq!(result, vec![Fq::from(-1), Fq::from(0), Fq::from(1)]);
     }
 
@@ -109,7 +109,7 @@ mod tests {
             (Fq::from(3), Fq::from(6)),
         ];
 
-        let polynomial = Polynomial::interpolate(points.clone());
+        let polynomial = UnivariatePolynomial::interpolate(points.clone());
         assert_eq!(polynomial.degree(), 1); // Linear polynomial y = 2x
         assert_eq!(polynomial.evaluate(Fq::from(0)), Fq::from(0));
         assert_eq!(polynomial.evaluate(Fq::from(1)), Fq::from(2));
