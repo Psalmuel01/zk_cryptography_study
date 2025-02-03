@@ -22,20 +22,6 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
         (size as f64).log2().ceil() as usize
     }
 
-    // pub fn evaluate(&self, evaluations: Vec<F>) -> Vec<F> {
-    //     let dim = (self.coefficients.len() as f64).log2().ceil() as usize;
-    //     let mut points = &self.coefficients;
-    //     let mut hypercube = boolean_hypercube(points.clone());
-
-    //     for i in 0..dim {
-    //         points =
-    //             partial_evaluate(points, dim - 1 - i, evaluations[dim - 1 - i]);
-    //         hypercube = boolean_hypercube(points);
-    //     }
-
-    //     hypercube.iter().map(|point| point.result).collect()
-    // }
-
     pub fn evaluate(&self, evaluations: &Vec<F>) -> F {
         if evaluations.len() != Self::dimension(&self) {
             panic!("Invalid number of evaluations");

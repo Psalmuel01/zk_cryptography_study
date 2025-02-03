@@ -47,7 +47,7 @@ impl <F: PrimeField> Prover<F> {
 
             round_polys.push(round_poly_coeffs);
         };
-        println!("prover_rund_poly: {:?}", round_polys);
+        println!("prover_round_poly: {:?}", round_polys);
 
         // dbg!(self.claimed_sum);
         // dbg!(&round_polys);
@@ -59,7 +59,7 @@ impl <F: PrimeField> Prover<F> {
     }
 }
 
-fn split_and_sum<F: PrimeField>(poly_coeff: &Vec<F>) -> [F; 2] {
+pub(crate) fn split_and_sum<F: PrimeField>(poly_coeff: &Vec<F>) -> [F; 2] {
     let mut result = [F::zero(); 2];
     let mid = poly_coeff.len() / 2;
     let (left, right) = poly_coeff.split_at(mid);
