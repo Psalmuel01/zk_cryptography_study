@@ -116,7 +116,7 @@ mod tests {
         assert_eq!(polynomial.evaluate(Fq::from(2)), Fq::from(4));
         assert_eq!(polynomial.evaluate(Fq::from(3)), Fq::from(6));
 
-        println!("Known Points: {:?}", points);
-        println!("Polynomial Coefficients: {:?}", polynomial.coefficients);
+        // println!("Known Points: {:?}", points);
+        // println!("Polynomial Coefficients: {:?}", polynomial.coefficients);
     }
 }

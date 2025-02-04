@@ -10,10 +10,11 @@ struct Prover<F: PrimeField> {
 
 struct Verifier<F: PrimeField> {
     challenges: Vec<F>,
+    initial_poly: MultilinearPolynomial<F>,
 }
 
 struct SumCheck<F: PrimeField> {
-    initial_poly: MultilinearPolynomial<F>,
+    poly: MultilinearPolynomial<F>,
     verifier: Verifier<F>,
     // claimed_sums: Vec<F>,
     // challenges: Vec<F>
@@ -22,19 +23,19 @@ struct SumCheck<F: PrimeField> {
 impl <F: PrimeField> SumCheck<F> {
     fn init(poly: MultilinearPolynomial<F>) -> Self {
         Self {
-            initial_poly: poly,
-            verifier: Verifier { challenges: vec![] },
+            poly: poly.clone(),
+            verifier: Verifier { challenges: vec![], initial_poly: poly },
             // claimed_sums,
             // challenges,
         }
     }
 
     fn prove (&mut self, claimed_sum: F) -> Prover<F> {
-        let mut poly_coeff = self.initial_poly.coefficients.clone();
+        let mut poly_coeff = self.poly.coefficients.clone();
         if self.verifier.challenges.len() > 0 {
             dbg!("now check challenge");
-            poly_coeff = partial_evaluate(self.initial_poly.coefficients.to_vec(), 0, self.verifier.challenges[0]);
-            self.initial_poly.coefficients = poly_coeff.clone();
+            poly_coeff = partial_evaluate(self.poly.coefficients.to_vec(), 0, self.verifier.challenges[0]);
+            self.poly.coefficients = poly_coeff.clone();
         }
         let round_poly = split_and_sum(&poly_coeff);
         
@@ -53,14 +54,14 @@ impl <F: PrimeField> SumCheck<F> {
         }
         self.verifier.challenges.insert(0, challenge);
 
-        if round_poly[0] == F::zero() {
+        if self.verifier.challenges.len() == self.verifier.initial_poly.dimension() {
             dbg!("last round!");
-            let verifier_sum = round_poly[0] + challenge * (round_poly[1] - round_poly[0]);
-            // let total_sum = self.initial_poly.evaluate(&self.verifier.challenges);
+            let verifier_sum = round_poly[0] + self.verifier.challenges[0] * (round_poly[1] - round_poly[0]);
+            self.verifier.challenges.reverse();
+            let total_sum = self.verifier.initial_poly.evaluate(&self.verifier.challenges);
             dbg!(verifier_sum);
-            dbg!(prover.claimed_sum);
-            dbg!(self.verifier.challenges.clone());
-            if verifier_sum != prover.claimed_sum {
+            dbg!(total_sum);
+            if verifier_sum != total_sum {
             return false
             }
         }
@@ -90,6 +91,17 @@ mod tests {
         let prover_2 = sum_check.prove(Fq::from(131));
         let verifier_2 = sum_check.verifier(prover_2, Fq::from(2));
         dbg!(verifier_2);
-        // assert!(verifier);
+        // check if all true
+        assert!(verifier && verifier_1 && verifier_2);
+
+        let poly = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
+        let mut sum_check = SumCheck::init(poly);
+        let prover = sum_check.prove(Fq::from(7));
+        let verifier = sum_check.verifier(prover, Fq::from(5));
+        dbg!(verifier);
+        let prover_1 = sum_check.prove(Fq::from(17));
+        let verifier_1 = sum_check.verifier(prover_1, Fq::from(2));
+        dbg!(verifier_1);
+        assert!(verifier && verifier_1);
     }
 }
