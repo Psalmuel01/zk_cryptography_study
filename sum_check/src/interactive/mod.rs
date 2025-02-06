@@ -45,7 +45,7 @@ impl <F: PrimeField> SumCheck<F> {
         }
     }
 
-    fn verifier (&mut self, prover: Prover<F>, challenge: F) -> bool {
+    fn verify (&mut self, prover: Prover<F>, challenge: F) -> bool {
         let round_poly = prover.univariate_poly;
         dbg!(round_poly);
         dbg!(prover.claimed_sum);
@@ -83,13 +83,13 @@ mod tests {
         let poly = MultilinearPolynomial::new(to_field(vec![0, 0, 0, 2, 0, 10, 0, 17]));
         let mut sum_check = SumCheck::init(poly);
         let prover = sum_check.prove(Fq::from(29));
-        let verifier = sum_check.verifier(prover, Fq::from(5));
+        let verifier = sum_check.verify(prover, Fq::from(5));
         dbg!(verifier);
         let prover_1 = sum_check.prove(Fq::from(127));
-        let verifier_1 = sum_check.verifier(prover_1, Fq::from(3));
+        let verifier_1 = sum_check.verify(prover_1, Fq::from(3));
         dbg!(verifier_1);
         let prover_2 = sum_check.prove(Fq::from(131));
-        let verifier_2 = sum_check.verifier(prover_2, Fq::from(2));
+        let verifier_2 = sum_check.verify(prover_2, Fq::from(2));
         dbg!(verifier_2);
         // check if all true
         assert!(verifier && verifier_1 && verifier_2);
@@ -97,10 +97,10 @@ mod tests {
         let poly = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
         let mut sum_check = SumCheck::init(poly);
         let prover = sum_check.prove(Fq::from(7));
-        let verifier = sum_check.verifier(prover, Fq::from(5));
+        let verifier = sum_check.verify(prover, Fq::from(5));
         dbg!(verifier);
         let prover_1 = sum_check.prove(Fq::from(17));
-        let verifier_1 = sum_check.verifier(prover_1, Fq::from(2));
+        let verifier_1 = sum_check.verify(prover_1, Fq::from(2));
         dbg!(verifier_1);
         assert!(verifier && verifier_1);
     }

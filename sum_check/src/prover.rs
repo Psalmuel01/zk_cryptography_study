@@ -39,16 +39,15 @@ impl <F: PrimeField> Prover<F> {
             let round_poly_coeffs = split_and_sum(&poly.coefficients);
             let round_poly = MultilinearPolynomial::new(round_poly_coeffs.to_vec());
             self.transcripts.absorb(round_poly.convert_to_bytes().as_slice());
+            round_polys.push(round_poly_coeffs);
 
             let challenge: F = self.transcripts.squeeze();
-            println!("challenge_prover: {}", challenge);
-            let poly_coeff = partial_evaluate(round_poly_coeffs.to_vec(), 0, challenge);
-            poly = MultilinearPolynomial::new(poly_coeff);
+            // println!("challenge_prover: {}", challenge);
+            poly = poly.partial_evaluate(0, challenge);
 
-            round_polys.push(round_poly_coeffs);
         };
-        println!("prover_round_poly: {:?}", round_polys);
 
+        // println!("prover_round_poly: {:?}", round_polys);
         // dbg!(self.claimed_sum);
         // dbg!(&round_polys);
 

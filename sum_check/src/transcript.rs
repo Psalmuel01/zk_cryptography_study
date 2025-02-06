@@ -58,25 +58,3 @@ mod tests {
         dbg!("{}", challenge);
     }
 }
-
-// /// Simple example of using Fiat-Shamir in a proof system
-// fn fiat_shamir_example<F: PrimeField>() {
-//     let mut transcript = Transcript::<Keccak256, F>::init(Keccak256::default());
-
-//     // Prover commits to a value
-//     let commitment: F = F::from(123u64);
-//     let commitment_bytes = commitment.into_bigint().to_bytes_be();
-//     let string_commitment = "hello world";
-//     let poly_commitment = [
-//         commitment_bytes.clone(),
-//         string_commitment.as_bytes().to_vec(),
-//     ];
-//     let poly_commitment_bytes = poly_commitment.concat();
-
-//     transcript.absorb(&commitment_bytes);
-//     transcript.absorb(string_commitment.as_bytes());
-//     transcript.absorb(&poly_commitment_bytes);
-//     // Verifier derives a challenge
-//     let challenge: F = transcript.squeeze();
-//     println!("Generated Challenge: {:?}", challenge);
-// }

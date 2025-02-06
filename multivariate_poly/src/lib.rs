@@ -34,6 +34,19 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
         }
     }
 
+    pub fn partial_evaluate(&self, index: usize, eval_point: F) -> Self {
+        let points = self.coefficients.clone();
+        let hypercube = boolean_hypercube(points);
+        let pairs = pair_points(&hypercube, index);
+        let mut eval_points = Vec::new();
+    
+        for (i, pair) in pairs.iter().enumerate() {
+            let pair_eval = evaluate_point(*pair, eval_point);
+            eval_points.push(pair_eval);
+        }
+        Self::new(eval_points)
+    }
+
     pub fn convert_to_bytes(&self) -> Vec<u8> {
         self.coefficients
             .iter()
@@ -118,10 +131,8 @@ pub fn partial_evaluate<F: PrimeField>(points: Vec<F>, index: usize, eval_point:
 
     for (i, pair) in pairs.iter().enumerate() {
         let pair_eval = evaluate_point(*pair, eval_point);
-        // println!("Evaluation for pair {}: {:?}", i, pair_eval);
         eval_points.push(pair_eval);
     }
-    // println!("eval points: {:?}", eval_points[0]);
     eval_points
 }
 
