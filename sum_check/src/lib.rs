@@ -1,7 +1,7 @@
-pub mod prover;
-pub mod verifier;
-pub mod transcript;
 pub mod interactive;
+pub mod prover;
+pub mod transcript;
+pub mod verifier;
 
 #[cfg(test)]
 mod test {

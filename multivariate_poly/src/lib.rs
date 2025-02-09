@@ -1,4 +1,3 @@
-pub mod multilinear;
 use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -257,56 +256,3 @@ mod tests {
         println!("{:?}", poly_bytes);
     }
 }
-
-// fn main() {
-//     use ark_bn254::Fq;
-
-//     // [0, 2, 0, 5] at a=5, b=2 => 34
-//     // [0, 0, 0, 3, 0, 0, 2, 5] at a = 1, b = 2, c = 3 => 22
-
-//     let points = vec![
-//         Fq::from(0),
-//         Fq::from(0),
-//         Fq::from(0),
-//         Fq::from(3),
-//         Fq::from(0),
-//         Fq::from(0),
-//         Fq::from(2),
-//         Fq::from(5),
-//     ];
-
-//     let hypercube = boolean_hypercube(points.clone());
-
-//     let index = 0;
-//     let eval_point = Fq::from(1);
-
-//     // for point in &hypercube {
-//     //     println!("{:?}, {:?}", point.coordinates, point.result);
-//     // }
-
-//     partial_evaluate(&hypercube, index, eval_point);
-
-//     // insert evaluations in ascending order
-//     let evaluations = vec![Fq::from(1), Fq::from(2), Fq::from(3)];
-//     total_evaluate(points, evaluations);
-// }
-
-// fn evaluate(&self, point: &[u32]) -> u32 {
-//     let mut result = 0;
-//     for (i, &coeff) in self.coefficients.iter().enumerate() {3
-//         let mut term = coeff;
-//         for (j, &coord) in point.iter().enumerate() {2
-//             if (i >> j) & 1 == 1 {
-//                 term *= coord;
-//             }
-//         }
-//         result += term;
-//     }
-
-//     let coefficients = [3, 2, 4, 1];
-//     let point = [2, 3];
-//     let result = evaluate(&coefficients, &point);
-//     println!("Result: {}", result); // Output: 25
-
-//     result
-// }
