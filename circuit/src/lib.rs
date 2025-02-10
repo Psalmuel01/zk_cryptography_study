@@ -1,4 +1,5 @@
 use ark_ff::PrimeField;
+use multivariate_poly::MultilinearPolynomial;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -49,7 +50,7 @@ impl<F: PrimeField> Layer<F> {
         }
     }
 
-    fn compute(&mut self, inputs: Vec<F>,) -> Vec<F> {
+    fn compute(&mut self, inputs: Vec<F>) -> Vec<F> {
         for gate in self.gates.iter_mut() {
             let output = gate.operate(inputs.clone());
             self.outputs.push(output);
@@ -88,51 +89,42 @@ impl<F: PrimeField> Circuit<F> {
         self.outputs.clone()
     }
 
-    fn add_i_n_mul_i_arrays(&self, layer_index: usize) -> (Vec<String>, Vec<String>) {
+    fn add_i_n_mul_i_arrays(
+        &self,
+        layer_index: usize,
+    ) -> (MultilinearPolynomial<F>, MultilinearPolynomial<F>) {
         let index_combinations = gate_index_combinations(layer_index);
         let boolean_combination = 1 << index_combinations;
 
-        let mut add_i_values = vec![0; boolean_combination];
-        let mut mul_i_values = vec![0; boolean_combination];
+        let mut add_i_values = vec![F::zero(); boolean_combination];
+        let mut mul_i_values = vec![F::zero(); boolean_combination];
 
         for gate in self.layers[layer_index].gates.iter() {
             match gate.op {
                 '+' => {
-                    let valid_index = arrange_gate_index(layer_index, gate.output, gate.left, gate.right);
-                    add_i_values[valid_index] = 1;
-                },
+                    let valid_index =
+                        arrange_gate_index(layer_index, gate.output, gate.left, gate.right);
+                    add_i_values[valid_index] = F::one();
+                }
                 '*' => {
-                    let valid_index = arrange_gate_index(layer_index, gate.output, gate.left, gate.right);
-                    mul_i_values[valid_index] = 1;
-                },
+                    let valid_index =
+                        arrange_gate_index(layer_index, gate.output, gate.left, gate.right);
+                    mul_i_values[valid_index] = F::one();
+                }
                 _ => panic!("Invalid operation"),
             }
         }
 
-        let mut add_indices = vec![];
-        let mut mul_indices = vec![];
+        let add_i_poly = MultilinearPolynomial::new(add_i_values.clone());
+        let mul_i_poly = MultilinearPolynomial::new(mul_i_values.clone());
 
-        // let indices: Vec<usize> = add_i.iter().enumerate().filter(|(_, &x)| x == 1).map(|(i, _)| i).collect();
-        for (i, x) in add_i_values.iter().enumerate() {
-            if *x == 1 {
-                let i_binary = decimal_to_padded_binary(i, index_combinations);
-                add_indices.push(i_binary);
-            }
-        }
-        for (i, x) in mul_i_values.iter().enumerate() {
-            if *x == 1 {
-                let i_binary = decimal_to_padded_binary(i, index_combinations);
-                mul_indices.push(i_binary);
-            }
-        }
-
-        (add_indices, mul_indices)
+        (add_i_poly, mul_i_poly)
     }
 }
 
 fn gate_index_combinations(layer_index: usize) -> usize {
     if layer_index == 0 {
-        return 3
+        return 3;
     }
 
     let a = layer_index;
@@ -142,7 +134,12 @@ fn gate_index_combinations(layer_index: usize) -> usize {
     a + b + c
 }
 
-fn arrange_gate_index(layer_index: usize, output: usize, left_index: usize, right_index: usize) -> usize {
+fn arrange_gate_index(
+    layer_index: usize,
+    output: usize,
+    left_index: usize,
+    right_index: usize,
+) -> usize {
     let output_binary = decimal_to_padded_binary(output, layer_index);
     let left_binary = decimal_to_padded_binary(left_index, layer_index + 1);
     let right_binary = decimal_to_padded_binary(right_index, layer_index + 1);
@@ -203,9 +200,21 @@ mod test {
         let layer_2 = Layer::init(vec![gate_1, gate_2, gate_3, gate_4]);
 
         let circuit = Circuit::create(inputs, vec![layer_0, layer_1, layer_2]);
-        let (add_i_values, mul_i_values) = circuit.add_i_n_mul_i_arrays(1);
-        assert_eq!(add_i_values, vec!["00001"]);
-        assert_eq!(mul_i_values, vec!["11011"]);
+        let (add_i_poly, mul_i_poly) = circuit.add_i_n_mul_i_arrays(1);
+        assert_eq!(
+            add_i_poly.coefficients,
+            to_field(vec![
+                0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0
+            ])
+        );
+        assert_eq!(
+            mul_i_poly.coefficients,
+            to_field(vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+                0, 0, 0, 0
+            ])
+        );
 
         // assert_eq!(add_i_values, vec!["00000001"]);
         // assert_eq!(mul_i_values, vec!["01010011", "10100101", "11110111"]);
@@ -278,10 +287,29 @@ mod test {
 
         assert_eq!(
             circuit_eval,
-            vec![to_field(vec![3, 12, 30, 56]), to_field(vec![15, 1680]), to_field(vec![1695])]
+            vec![
+                to_field(vec![3, 12, 30, 56]),
+                to_field(vec![15, 1680]),
+                to_field(vec![1695])
+            ]
         );
         // dbg!(circuit);
     }
 }
 
-
+// let mut add_indices = vec![];
+// let mut mul_indices = vec![];
+// let indices: Vec<usize> = add_i.iter().enumerate().filter(|(_, &x)| x == 1).map(|(i, _)| i).collect();
+// for (i, x) in add_i_values.iter().enumerate() {
+//     if *x == F::one() {
+//         let i_binary = decimal_to_padded_binary(i, index_combinations);
+//         add_indices.push(i_binary);
+//     }
+// }
+// for (i, x) in mul_i_values.iter().enumerate() {
+//     if *x == F::one() {
+//         let i_binary = decimal_to_padded_binary(i, index_combinations);
+//         mul_indices.push(i_binary);
+//     }
+// }
+// dbg!(add_indices, mul_indices);
