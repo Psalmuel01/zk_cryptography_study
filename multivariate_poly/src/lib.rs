@@ -1,3 +1,4 @@
+pub mod product_poly;
 use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,7 +27,7 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
             panic!("Invalid number of evaluations");
         } else {
             let mut poly = self.clone();
-            for (i, eval_point) in evaluations.iter().enumerate() {
+            for (_, eval_point) in evaluations.iter().enumerate() {
                 poly.coefficients = partial_evaluate(poly.coefficients, 0, *eval_point);
             }
             poly.coefficients[0]
@@ -39,7 +40,7 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
         let pairs = pair_points(&hypercube, index);
         let mut eval_points = Vec::new();
     
-        for (i, pair) in pairs.iter().enumerate() {
+        for (_, pair) in pairs.iter().enumerate() {
             let pair_eval = evaluate_point(*pair, eval_point);
             eval_points.push(pair_eval);
         }
@@ -128,7 +129,7 @@ pub fn partial_evaluate<F: PrimeField>(points: Vec<F>, index: usize, eval_point:
     // }
     let mut eval_points = Vec::new();
 
-    for (i, pair) in pairs.iter().enumerate() {
+    for (_, pair) in pairs.iter().enumerate() {
         let pair_eval = evaluate_point(*pair, eval_point);
         eval_points.push(pair_eval);
     }

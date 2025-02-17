@@ -83,10 +83,16 @@ impl<F: PrimeField> Circuit<F> {
 
         for layer in self.layers.iter_mut().rev() {
             inputs = layer.compute(inputs);
-            self.outputs.push(inputs.clone());
+            self.outputs.insert(0, inputs.clone());
         }
 
         self.outputs.clone()
+    }
+
+    fn w_i_polynomial(&self, layer_index: usize) -> MultilinearPolynomial<F> {
+        assert!(layer_index < self.outputs.len(), "layer doesn't exist");
+        let layer_coeffs = self.outputs[layer_index].clone();
+        MultilinearPolynomial::new(layer_coeffs)
     }
 
     fn add_i_n_mul_i_arrays(
@@ -161,6 +167,30 @@ mod test {
 
     fn to_field(input: Vec<u64>) -> Vec<Fq> {
         input.into_iter().map(Fq::from).collect()
+    }
+
+    #[test]
+    fn test_w_i_polynomial() {
+        let inputs = to_field(vec![1, 2, 3, 4, 5, 6, 7, 8]);
+
+        let gate_1: Gate = Gate::new('+', 0, 1, 0);
+        let gate_2: Gate = Gate::new('*', 2, 3, 1);
+        let gate_3: Gate = Gate::new('*', 4, 5, 2);
+        let gate_4: Gate = Gate::new('*', 6, 7, 3);
+
+        let gate_5: Gate = Gate::new('+', 0, 1, 0);
+        let gate_6: Gate = Gate::new('*', 2, 3, 1);
+
+        let gate_7: Gate = Gate::new('+', 0, 1, 0);
+
+        let layer_0 = Layer::init(vec![gate_7]);
+        let layer_1 = Layer::init(vec![gate_5, gate_6]);
+        let layer_2 = Layer::init(vec![gate_1, gate_2, gate_3, gate_4]);
+
+        let mut circuit = Circuit::create(inputs, vec![layer_0, layer_1, layer_2]);
+        circuit.execute();
+        let w_i = circuit.w_i_polynomial(1);
+        assert_eq!(w_i.coefficients, to_field(vec![15, 1680]));
     }
 
     #[test]
@@ -259,7 +289,7 @@ mod test {
 
         assert_eq!(
             circuit_eval,
-            vec![to_field(vec![3, 12]), to_field(vec![15])]
+            vec![to_field(vec![15]), to_field(vec![3, 12])]
         );
         // dbg!(circuit);
     }
@@ -288,9 +318,9 @@ mod test {
         assert_eq!(
             circuit_eval,
             vec![
-                to_field(vec![3, 12, 30, 56]),
+                to_field(vec![1695]),
                 to_field(vec![15, 1680]),
-                to_field(vec![1695])
+                to_field(vec![3, 12, 30, 56])
             ]
         );
         // dbg!(circuit);
