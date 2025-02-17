@@ -148,6 +148,29 @@ pub fn total_evaluate<F: PrimeField>(mut points: Vec<F>, evaluations: Vec<F>) ->
     hypercube.iter().map(|point| point.result).collect() // Return final results
 }
 
+pub fn tensor_add<F: PrimeField>(poly_1: MultilinearPolynomial<F>, poly_2: MultilinearPolynomial<F>) -> MultilinearPolynomial<F> {
+    let mut add_poly = Vec::new();
+    for i in 0..poly_1.coefficients.len() {
+        for j in 0..poly_2.coefficients.len() {
+            let coeff = poly_1.coefficients[i] + poly_2.coefficients[j];
+            add_poly.push(coeff);
+        }
+    }
+    MultilinearPolynomial::new(add_poly)
+}
+
+pub fn tensor_mul<F: PrimeField>(poly_1: MultilinearPolynomial<F>, poly_2: MultilinearPolynomial<F>) -> MultilinearPolynomial<F> {
+    let mut mul_poly = Vec::new();
+    for i in 0..poly_1.coefficients.len() {
+        for j in 0..poly_2.coefficients.len() {
+            let coeff = poly_1.coefficients[i] * poly_2.coefficients[j];
+            mul_poly.push(coeff);
+        }
+    }
+    MultilinearPolynomial::new(mul_poly)
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -247,6 +270,24 @@ mod tests {
         let eval = polynomial.evaluate(&evaluations);
         let expected_eval = Fq::from(22);
         assert_eq!(eval, expected_eval);
+    }
+
+    #[test]
+    fn test_tensor_add() {
+        let poly_1 = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
+        let poly_2 = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4)]);
+        let tensor_add = tensor_add(poly_1, poly_2);
+        let expected = MultilinearPolynomial::new(vec![Fq::from(4), Fq::from(5), Fq::from(5), Fq::from(6)]);
+        assert_eq!(tensor_add, expected);
+    }
+
+    #[test]
+    fn test_tensor_mul() {
+        let poly_1 = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
+        let poly_2 = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4)]);
+        let tensor_mul = tensor_mul(poly_1, poly_2);
+        let expected = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4), Fq::from(6), Fq::from(8)]);
+        assert_eq!(tensor_mul, expected);
     }
 
     #[test]
