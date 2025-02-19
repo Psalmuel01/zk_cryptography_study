@@ -1,5 +1,7 @@
+use std::iter::Sum;
+
 use ark_ff::PrimeField;
-use multivariate_poly::MultilinearPolynomial;
+use multivariate_poly::{product_poly::ProductPoly, sum_poly::SumPoly, MultilinearPolynomial};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -90,9 +92,14 @@ impl<F: PrimeField> Circuit<F> {
     }
 
     fn w_i_polynomial(&self, layer_index: usize) -> MultilinearPolynomial<F> {
-        assert!(layer_index < self.outputs.len(), "layer doesn't exist");
-        let layer_coeffs = self.outputs[layer_index].clone();
-        MultilinearPolynomial::new(layer_coeffs)
+        assert!(layer_index <= self.outputs.len(), "layer doesn't exist");
+        if layer_index == self.outputs.len() {
+            let layer_coeffs = self.inputs.clone();
+            return MultilinearPolynomial::new(layer_coeffs);
+        } else {
+            let layer_coeffs = self.outputs[layer_index].clone();
+            MultilinearPolynomial::new(layer_coeffs)
+        }
     }
 
     fn add_i_n_mul_i_arrays(
@@ -125,6 +132,29 @@ impl<F: PrimeField> Circuit<F> {
         let mul_i_poly = MultilinearPolynomial::new(mul_i_values.clone());
 
         (add_i_poly, mul_i_poly)
+    }
+
+    fn f_b_c(&self, layer_index: usize, a_s: Vec<F>) -> SumPoly<F> {
+        let (add_i_poly, mul_i_poly) = self.add_i_n_mul_i_arrays(layer_index);
+        dbg!(add_i_poly.clone());
+        dbg!(mul_i_poly.clone());
+        let mut add_bc = MultilinearPolynomial::zero();
+        let mut mul_bc = MultilinearPolynomial::zero();
+        for i in 0..a_s.len() {
+            add_bc = add_i_poly.partial_evaluate(0, a_s[i]);
+            mul_bc = mul_i_poly.partial_evaluate(0, a_s[i]);
+        }
+
+        let w_i = self.w_i_polynomial(layer_index + 1);
+        dbg!(w_i.clone());
+        let mut w = ProductPoly::new(vec![w_i.clone(), w_i.clone()]);
+        let w_add_bc = w.sum_reduce();
+        let w_mul_bc = w.product_reduce();
+
+        SumPoly::new(vec![
+            ProductPoly::new(vec![add_bc, w_add_bc]),
+            ProductPoly::new(vec![mul_bc, w_mul_bc]),
+        ])
     }
 }
 
@@ -167,6 +197,30 @@ mod test {
 
     fn to_field(input: Vec<u64>) -> Vec<Fq> {
         input.into_iter().map(Fq::from).collect()
+    }
+
+    #[test]
+    fn test_f_b_c() {
+        let inputs = to_field(vec![1, 2, 3, 4, 5, 6, 7, 8]);
+
+        let gate_1: Gate = Gate::new('+', 0, 1, 0);
+        let gate_2: Gate = Gate::new('*', 2, 3, 1);
+        let gate_3: Gate = Gate::new('*', 4, 5, 2);
+        let gate_4: Gate = Gate::new('*', 6, 7, 3);
+
+        let gate_5: Gate = Gate::new('+', 0, 1, 0);
+        let gate_6: Gate = Gate::new('*', 2, 3, 1);
+
+        let gate_7: Gate = Gate::new('+', 0, 1, 0);
+
+        let layer_0 = Layer::init(vec![gate_7]);
+        let layer_1 = Layer::init(vec![gate_5, gate_6]);
+        let layer_2 = Layer::init(vec![gate_1, gate_2, gate_3, gate_4]);
+
+        let mut circuit = Circuit::create(inputs, vec![layer_0, layer_1, layer_2]);
+        circuit.execute();
+        let f_b_c = circuit.f_b_c(2, to_field(vec![5]));
+        dbg!(f_b_c);
     }
 
     #[test]
@@ -291,7 +345,7 @@ mod test {
             circuit_eval,
             vec![to_field(vec![15]), to_field(vec![3, 12])]
         );
-        // dbg!(circuit);
+        dbg!(circuit);
     }
 
     #[test]

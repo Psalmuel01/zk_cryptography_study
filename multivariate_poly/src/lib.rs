@@ -1,4 +1,5 @@
 pub mod product_poly;
+pub mod sum_poly;
 use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -15,6 +16,10 @@ pub struct MultilinearPolynomial<F: PrimeField> {
 impl<F: PrimeField> MultilinearPolynomial<F> {
     pub fn new(coefficients: Vec<F>) -> Self {
         Self { coefficients }
+    }
+
+    pub fn zero() -> Self {
+        Self { coefficients: vec![F::zero()] }
     }
 
     pub fn dimension(&self) -> usize {

@@ -2,22 +2,22 @@ use ark_ff::PrimeField;
 use crate::{partial_evaluate, MultilinearPolynomial};
 
 #[derive(Debug)]
-struct ProductPoly<F: PrimeField> {
-    poly_coefficients: Vec<MultilinearPolynomial<F>>,
+pub struct ProductPoly<F: PrimeField> {
+    pub poly_coefficients: Vec<MultilinearPolynomial<F>>,
 }
 
 impl<F: PrimeField> ProductPoly<F> {
-    fn new(poly_coefficients: Vec<MultilinearPolynomial<F>>,) -> Self {
+    pub fn new(poly_coefficients: Vec<MultilinearPolynomial<F>>,) -> Self {
         Self {
             poly_coefficients,
         }
     }
 
-    fn degree(&self) -> usize {
+    pub fn degree(&self) -> usize {
         self.poly_coefficients[0].dimension()
     }
 
-    fn evaluate(&mut self, eval_points: Vec<F>) -> F {
+    pub fn evaluate(&mut self, eval_points: &Vec<F>) -> F {
         let mut result = F::one();
         for poly in self.poly_coefficients.iter() {
             result *= poly.evaluate(&eval_points);
@@ -25,7 +25,7 @@ impl<F: PrimeField> ProductPoly<F> {
         result
     }
 
-   fn partial_evaluate(&mut self, index: usize, eval_point: F) -> MultilinearPolynomial<F> {
+   pub fn partial_evaluate(&mut self, index: usize, eval_point: F) -> MultilinearPolynomial<F> {
     let partials: Vec<_> = self.poly_coefficients
         .iter()
         .flat_map(|poly| {
@@ -37,7 +37,7 @@ impl<F: PrimeField> ProductPoly<F> {
         MultilinearPolynomial::new(partials)
     }
 
-    fn sum_reduce(&mut self) -> MultilinearPolynomial<F> {
+    pub fn sum_reduce(&mut self) -> MultilinearPolynomial<F> {
         let mut new_poly = Vec::new();
         let first_poly = &self.poly_coefficients[0].coefficients;
         let second_poly = &self.poly_coefficients[1].coefficients;
@@ -47,7 +47,7 @@ impl<F: PrimeField> ProductPoly<F> {
         MultilinearPolynomial::new(new_poly)
     }
 
-    fn product_reduce(&mut self) -> MultilinearPolynomial<F> {
+    pub fn product_reduce(&mut self) -> MultilinearPolynomial<F> {
         let mut new_poly = Vec::new();
         let first_poly = &self.poly_coefficients[0].coefficients;
         let second_poly = &self.poly_coefficients[1].coefficients;
@@ -72,8 +72,9 @@ mod tests {
         let poly1 = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
         let poly2 = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
         let mut product_poly = ProductPoly::new(vec![poly1, poly2]);
+        dbg!(&product_poly);
         let eval_points = to_field(vec![5, 2]);
-        assert_eq!(product_poly.evaluate(eval_points), Fq::from(1156));
+        assert_eq!(product_poly.evaluate(&eval_points), Fq::from(1156));
     }
 
     #[test]
