@@ -1,3 +1,5 @@
+use std::vec;
+
 use ark_ff::PrimeField;
 use crate::{partial_evaluate, MultilinearPolynomial};
 
@@ -55,6 +57,16 @@ impl<F: PrimeField> ProductPoly<F> {
             new_poly.push(first_poly[i] * second_poly[i]);
         }
         MultilinearPolynomial::new(new_poly)
+    }
+
+    pub fn convert_to_bytes(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+        for poly in self.poly_coefficients.iter() {
+            let value = poly.convert_to_bytes();
+            bytes.extend(value);
+        }
+        bytes
+
     }
 }
 

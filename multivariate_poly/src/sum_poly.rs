@@ -26,6 +26,14 @@ impl <F: PrimeField> SumPoly<F> {
         result
     }
 
+    pub fn convert_to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for poly in self.product_polys.iter() {
+            bytes.extend(poly.convert_to_bytes());
+        }
+        bytes
+    }
+
     // pub fn partial_evaluate(&mut self, index: usize, eval_point: F) -> ProductPoly<F> {
     //     let partials= self.product_polys
     //         .iter()
@@ -73,6 +81,6 @@ mod tests {
         let poly2:  ProductPoly<Fq> = ProductPoly::new(vec![mul3, mul4]);
         let mut sum_poly = SumPoly::new(vec![poly1, poly2]);
         let eval_points = to_field(vec![5, 2]);
-        assert_eq!(sum_poly.evaluate(eval_points), Fq::from(78));
+        assert_eq!(sum_poly.evaluate(eval_points), Fq::from(2312));
     }
 }

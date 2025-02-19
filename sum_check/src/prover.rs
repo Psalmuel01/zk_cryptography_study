@@ -1,7 +1,7 @@
-use ark_ff::{BigInteger, PrimeField};
-use sha3::Keccak256;
-use multivariate_poly::{partial_evaluate, MultilinearPolynomial};
 use crate::transcript::Transcript;
+use ark_ff::{BigInteger, PrimeField};
+use multivariate_poly::MultilinearPolynomial;
+use sha3::Keccak256;
 
 #[derive(Debug, Clone)]
 pub struct Proof<F: PrimeField> {
@@ -16,7 +16,7 @@ pub struct Prover<F: PrimeField> {
     pub transcripts: Transcript<Keccak256, F>,
 }
 
-impl <F: PrimeField> Prover<F> {
+impl<F: PrimeField> Prover<F> {
     pub fn new(poly_eval_points: &Vec<F>, claimed_sum: F) -> Self {
         let poly = MultilinearPolynomial::new(poly_eval_points.clone());
         Self {
@@ -30,22 +30,24 @@ impl <F: PrimeField> Prover<F> {
         let mut round_polys = Vec::new();
 
         // append poly eval coefficients
-        self.transcripts.absorb(self.initial_poly.convert_to_bytes().as_slice());
-        self.transcripts.absorb(self.claimed_sum.into_bigint().to_bytes_be().as_slice());
+        self.transcripts
+            .absorb(self.initial_poly.convert_to_bytes().as_slice());
+        self.transcripts
+            .absorb(self.claimed_sum.into_bigint().to_bytes_be().as_slice());
 
         let mut poly = self.initial_poly.clone();
 
         for _ in 0..self.initial_poly.dimension() {
             let round_poly_coeffs = split_and_sum(&poly.coefficients);
             let round_poly = MultilinearPolynomial::new(round_poly_coeffs.to_vec());
-            self.transcripts.absorb(round_poly.convert_to_bytes().as_slice());
+            self.transcripts
+                .absorb(round_poly.convert_to_bytes().as_slice());
             round_polys.push(round_poly_coeffs);
 
             let challenge: F = self.transcripts.squeeze();
             // println!("challenge_prover: {}", challenge);
             poly = poly.partial_evaluate(0, challenge);
-
-        };
+        }
 
         // println!("prover_round_poly: {:?}", round_polys);
         // dbg!(self.claimed_sum);

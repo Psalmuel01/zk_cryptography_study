@@ -1,5 +1,3 @@
-use std::iter::Sum;
-
 use ark_ff::PrimeField;
 use multivariate_poly::{product_poly::ProductPoly, sum_poly::SumPoly, MultilinearPolynomial};
 
