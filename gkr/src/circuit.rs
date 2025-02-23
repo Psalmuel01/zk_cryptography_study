@@ -1,5 +1,5 @@
 use ark_ff::PrimeField;
-use multivariate_poly::{product_poly::ProductPoly, sum_poly::SumPoly, MultilinearPolynomial};
+use multivariate_poly::{product_poly::ProductPoly, sum_poly::SumPoly, tensor_add, tensor_mul, MultilinearPolynomial};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -136,11 +136,11 @@ impl<F: PrimeField> Circuit<F> {
         let (add_i_poly, mul_i_poly) = self.add_i_n_mul_i_arrays(layer_index);
         dbg!(add_i_poly.clone());
         dbg!(mul_i_poly.clone());
-        let mut add_bc = MultilinearPolynomial::zero();
-        let mut mul_bc = MultilinearPolynomial::zero();
+        let mut add_bc = add_i_poly;
+        let mut mul_bc = mul_i_poly;
         for i in 0..a_s.len() {
-            add_bc = add_i_poly.partial_evaluate(0, a_s[i]);
-            mul_bc = mul_i_poly.partial_evaluate(0, a_s[i]);
+            add_bc = add_bc.partial_evaluate(0, a_s[i]);
+            mul_bc = mul_bc.partial_evaluate(0, a_s[i]);
         }
 
         let w_i = self.w_i_polynomial(layer_index + 1);
@@ -148,6 +148,8 @@ impl<F: PrimeField> Circuit<F> {
         let mut w = ProductPoly::new(vec![w_i.clone(), w_i.clone()]);
         let w_add_bc = w.sum_reduce();
         let w_mul_bc = w.product_reduce();
+        // let w_add_bc = tensor_add(w_i.clone(), w_i.clone());
+        // let w_mul_bc = tensor_mul(w_i.clone(), w_i.clone());
 
         SumPoly::new(vec![
             ProductPoly::new(vec![add_bc, w_add_bc]),
@@ -188,12 +190,10 @@ fn decimal_to_padded_binary(n: usize, bit_length: usize) -> String {
 
 #[cfg(test)]
 mod test {
-    use std::vec;
-
     use super::*;
     use ark_bn254::Fq;
 
-    fn to_field(input: Vec<u64>) -> Vec<Fq> {
+    pub fn to_field(input: Vec<u64>) -> Vec<Fq> {
         input.into_iter().map(Fq::from).collect()
     }
 

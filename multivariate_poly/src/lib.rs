@@ -19,7 +19,9 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
     }
 
     pub fn zero() -> Self {
-        Self { coefficients: vec![F::zero()] }
+        Self {
+            coefficients: vec![F::zero()],
+        }
     }
 
     pub fn dimension(&self) -> usize {
@@ -44,7 +46,7 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
         let hypercube = boolean_hypercube(points);
         let pairs = pair_points(&hypercube, index);
         let mut eval_points = Vec::new();
-    
+
         for (_, pair) in pairs.iter().enumerate() {
             let pair_eval = evaluate_point(*pair, eval_point);
             eval_points.push(pair_eval);
@@ -153,7 +155,10 @@ pub fn total_evaluate<F: PrimeField>(mut points: Vec<F>, evaluations: Vec<F>) ->
     hypercube.iter().map(|point| point.result).collect() // Return final results
 }
 
-pub fn tensor_add<F: PrimeField>(poly_1: MultilinearPolynomial<F>, poly_2: MultilinearPolynomial<F>) -> MultilinearPolynomial<F> {
+pub fn tensor_add<F: PrimeField>(
+    poly_1: MultilinearPolynomial<F>,
+    poly_2: MultilinearPolynomial<F>,
+) -> MultilinearPolynomial<F> {
     let mut add_poly = Vec::new();
     for i in 0..poly_1.coefficients.len() {
         for j in 0..poly_2.coefficients.len() {
@@ -164,7 +169,10 @@ pub fn tensor_add<F: PrimeField>(poly_1: MultilinearPolynomial<F>, poly_2: Multi
     MultilinearPolynomial::new(add_poly)
 }
 
-pub fn tensor_mul<F: PrimeField>(poly_1: MultilinearPolynomial<F>, poly_2: MultilinearPolynomial<F>) -> MultilinearPolynomial<F> {
+pub fn tensor_mul<F: PrimeField>(
+    poly_1: MultilinearPolynomial<F>,
+    poly_2: MultilinearPolynomial<F>,
+) -> MultilinearPolynomial<F> {
     let mut mul_poly = Vec::new();
     for i in 0..poly_1.coefficients.len() {
         for j in 0..poly_2.coefficients.len() {
@@ -174,7 +182,6 @@ pub fn tensor_mul<F: PrimeField>(poly_1: MultilinearPolynomial<F>, poly_2: Multi
     }
     MultilinearPolynomial::new(mul_poly)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -268,7 +275,16 @@ mod tests {
 
     #[test]
     fn test_evaluate() {
-        let points = vec![Fq::from(0), Fq::from(0), Fq::from(0), Fq::from(3), Fq::from(0), Fq::from(0), Fq::from(2), Fq::from(5)];
+        let points = vec![
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(3),
+            Fq::from(0),
+            Fq::from(0),
+            Fq::from(2),
+            Fq::from(5),
+        ];
         let polynomial = MultilinearPolynomial::new(points);
         println!("{:?}", polynomial);
         let evaluations = vec![Fq::from(1), Fq::from(2), Fq::from(3)];
@@ -282,7 +298,8 @@ mod tests {
         let poly_1 = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
         let poly_2 = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4)]);
         let tensor_add = tensor_add(poly_1, poly_2);
-        let expected = MultilinearPolynomial::new(vec![Fq::from(4), Fq::from(5), Fq::from(5), Fq::from(6)]);
+        let expected =
+            MultilinearPolynomial::new(vec![Fq::from(4), Fq::from(5), Fq::from(5), Fq::from(6)]);
         assert_eq!(tensor_add, expected);
     }
 
@@ -291,7 +308,8 @@ mod tests {
         let poly_1 = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
         let poly_2 = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4)]);
         let tensor_mul = tensor_mul(poly_1, poly_2);
-        let expected = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4), Fq::from(6), Fq::from(8)]);
+        let expected =
+            MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4), Fq::from(6), Fq::from(8)]);
         assert_eq!(tensor_mul, expected);
     }
 
@@ -301,5 +319,6 @@ mod tests {
         let polynomial = MultilinearPolynomial::new(points);
         let poly_bytes = polynomial.convert_to_bytes();
         println!("{:?}", poly_bytes);
+        assert_eq!(poly_bytes.len(), 128);
     }
 }
