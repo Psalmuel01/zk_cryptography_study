@@ -1,4 +1,4 @@
-use ark_ff::PrimeField;
+use ark_ff::{BigInteger, PrimeField};
 use std::cmp::max;
 
 #[derive(Debug, Clone)]
@@ -23,6 +23,13 @@ impl<F: PrimeField> UnivariatePolynomial<F> {
         .iter()
         .rposition(|&coeff| coeff != F::zero())
         .unwrap_or(0)
+    }
+
+    pub fn convert_to_bytes(&self) -> Vec<u8> {
+        self.coefficients
+            .iter()
+            .flat_map(|coeff| coeff.into_bigint().to_bytes_be())
+            .collect()
     }
 
     pub fn add_polynomials(a: Vec<F>, b: Vec<F>) -> Vec<F> {
@@ -110,13 +117,12 @@ mod tests {
         ];
 
         let polynomial = UnivariatePolynomial::interpolate(points.clone());
+        // println!("Known Points: {:?}", points);
+        println!("Polynomial Coefficients: {:?}", polynomial.coefficients);
         assert_eq!(polynomial.degree(), 1); // Linear polynomial y = 2x
         assert_eq!(polynomial.evaluate(Fq::from(0)), Fq::from(0));
         assert_eq!(polynomial.evaluate(Fq::from(1)), Fq::from(2));
         assert_eq!(polynomial.evaluate(Fq::from(2)), Fq::from(4));
         assert_eq!(polynomial.evaluate(Fq::from(3)), Fq::from(6));
-
-        // println!("Known Points: {:?}", points);
-        // println!("Polynomial Coefficients: {:?}", polynomial.coefficients);
     }
 }

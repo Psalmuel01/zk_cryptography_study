@@ -134,8 +134,8 @@ impl<F: PrimeField> Circuit<F> {
 
     fn f_b_c(&self, layer_index: usize, a_s: Vec<F>) -> SumPoly<F> {
         let (add_i_poly, mul_i_poly) = self.add_i_n_mul_i_arrays(layer_index);
-        dbg!(add_i_poly.clone());
-        dbg!(mul_i_poly.clone());
+        // dbg!(add_i_poly.clone());
+        // dbg!(mul_i_poly.clone());
         let mut add_bc = add_i_poly;
         let mut mul_bc = mul_i_poly;
         for i in 0..a_s.len() {
@@ -144,12 +144,12 @@ impl<F: PrimeField> Circuit<F> {
         }
 
         let w_i = self.w_i_polynomial(layer_index + 1);
-        dbg!(w_i.clone());
-        let mut w = ProductPoly::new(vec![w_i.clone(), w_i.clone()]);
-        let w_add_bc = w.sum_reduce();
-        let w_mul_bc = w.product_reduce();
-        // let w_add_bc = tensor_add(w_i.clone(), w_i.clone());
-        // let w_mul_bc = tensor_mul(w_i.clone(), w_i.clone());
+        // dbg!(w_i.clone());
+        // let mut w = ProductPoly::new(vec![w_i.clone(), w_i.clone()]);
+        // let w_add_bc = w.sum_reduce();
+        // let w_mul_bc = w.product_reduce();
+        let w_add_bc = tensor_add(w_i.clone(), w_i.clone());
+        let w_mul_bc = tensor_mul(w_i.clone(), w_i.clone());
 
         SumPoly::new(vec![
             ProductPoly::new(vec![add_bc, w_add_bc]),
@@ -218,7 +218,7 @@ mod test {
         let mut circuit = Circuit::create(inputs, vec![layer_0, layer_1, layer_2]);
         circuit.execute();
         let f_b_c = circuit.f_b_c(2, to_field(vec![5]));
-        dbg!(f_b_c);
+        // dbg!(f_b_c);
     }
 
     #[test]

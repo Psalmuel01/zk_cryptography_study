@@ -8,11 +8,15 @@ pub struct ProductPoly<F: PrimeField> {
 
 impl<F: PrimeField> ProductPoly<F> {
     pub fn new(poly_coefficients: Vec<MultilinearPolynomial<F>>) -> Self {
+        assert!(
+            poly_coefficients.iter().all(|poly| poly.no_of_variables() == poly_coefficients[0].no_of_variables()),
+            "All polynomials must be of the same degree"
+        );
         Self { poly_coefficients }
     }
 
     pub fn degree(&self) -> usize {
-        self.poly_coefficients[0].dimension()
+        self.poly_coefficients.len()
     }
 
     pub fn evaluate(&mut self, eval_points: &Vec<F>) -> F {
@@ -23,7 +27,7 @@ impl<F: PrimeField> ProductPoly<F> {
         result
     }
 
-    pub fn partial_evaluate(&mut self, index: usize, eval_point: F) -> ProductPoly<F> {
+    pub fn partial_evaluate(&mut self, index: usize, eval_point: F) -> Self {
         let partials: Vec<_> = self
             .poly_coefficients
             .iter()
@@ -33,38 +37,29 @@ impl<F: PrimeField> ProductPoly<F> {
             })
             .collect();
 
-        ProductPoly::new(partials)
+        Self { poly_coefficients: partials }
     }
 
-    pub fn sum_reduce(&mut self) -> MultilinearPolynomial<F> {
-        let mut new_poly = Vec::new();
-        let first_poly = &self.poly_coefficients[0].coefficients;
-        let second_poly = &self.poly_coefficients[1].coefficients;
-        for i in 0..1 << self.degree() {
-            new_poly.push(first_poly[i] + second_poly[i]);
-        }
-        MultilinearPolynomial::new(new_poly)
-    }
+    // pub fn sum_reduce(&mut self) -> MultilinearPolynomial<F> {
+    //     let mut new_poly = Vec::new();
+    //     let first_poly = &self.poly_coefficients[0].coefficients;
+    //     let second_poly = &self.poly_coefficients[1].coefficients;
+    //     for i in 0..1 << self.degree() {
+    //         new_poly.push(first_poly[i] + second_poly[i]);
+    //     }
+    //     MultilinearPolynomial::new(new_poly)
+    // }
 
     pub fn product_reduce(&mut self) -> MultilinearPolynomial<F> {
-        let polys: Vec<_> = self
-            .poly_coefficients
-            .iter()
-            .map(|poly| poly.coefficients.clone())
-            .collect();
-        assert!(
-            polys.iter().all(|poly| poly.len() == polys[0].len()),
-            "All polynomials must be of the same length"
-        );
-        let mut new_poly = Vec::new();
-        for i in 0..polys[0].len() {
-            let mut product = polys[0][i];
-            for poly in polys.iter().skip(1) {
-                product *= poly[i];
+        assert!(self.poly_coefficients.len() > 1, "More than one polynomial is required");
+
+       let mut resultant_values = self.poly_coefficients[0].coefficients.clone();
+        for poly in self.poly_coefficients.iter().skip(1) {
+            for (i, value) in poly.coefficients.iter().enumerate() {
+                resultant_values[i] *= value;
             }
-            new_poly.push(product);
         }
-        MultilinearPolynomial::new(new_poly)
+        MultilinearPolynomial::new(resultant_values)
     }
 
     pub fn convert_to_bytes(&self) -> Vec<u8> {
@@ -105,15 +100,15 @@ mod tests {
         println!("{:?}", partials);
     }
 
-    #[test]
-    fn test_sum_reduce() {
-        let poly1 = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
-        let poly2 = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
-        let mut product_poly = ProductPoly::new(vec![poly1, poly2]);
-        let reduced_sum_poly = product_poly.sum_reduce();
-        assert_eq!(reduced_sum_poly.coefficients, to_field(vec![0, 4, 0, 10]));
-        // println!("{:?}", reduced_sum_poly);
-    }
+    // #[test]
+    // fn test_sum_reduce() {
+    //     let poly1 = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
+    //     let poly2 = MultilinearPolynomial::new(to_field(vec![0, 2, 0, 5]));
+    //     let mut product_poly = ProductPoly::new(vec![poly1, poly2]);
+    //     let reduced_sum_poly = product_poly.sum_reduce();
+    //     assert_eq!(reduced_sum_poly.coefficients, to_field(vec![0, 4, 0, 10]));
+    //     // println!("{:?}", reduced_sum_poly);
+    // }
 
     #[test]
     fn test_product_reduce() {

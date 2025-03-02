@@ -8,11 +8,19 @@ pub struct SumPoly<F: PrimeField> {
 
 impl<F: PrimeField> SumPoly<F> {
     pub fn new(product_polys: Vec<ProductPoly<F>>) -> Self {
+        assert!(
+            product_polys.iter().all(|poly| poly.degree() == product_polys[0].degree()),
+            "All polynomials must be of the same degree"
+        );
         Self { product_polys }
     }
 
     pub fn degree(&self) -> usize {
         self.product_polys[0].degree()
+    }
+
+    pub fn no_of_variables(&self) -> usize {
+        self.product_polys[0].poly_coefficients[0].no_of_variables()
     }
 
     pub fn evaluate(&mut self, eval_points: Vec<F>) -> F {
@@ -23,22 +31,7 @@ impl<F: PrimeField> SumPoly<F> {
         result
     }
 
-    pub fn add_polynomial(&mut self, poly: ProductPoly<F>) {
-        self.product_polys.push(poly);
-    }
-
-    pub fn add_polynomials(&mut self, polys: Vec<ProductPoly<F>>) {
-        self.product_polys.extend(polys);
-    }
-
-    pub fn convert_to_bytes(&self) -> Vec<u8> {
-        self.product_polys
-            .iter()
-            .flat_map(|poly| poly.convert_to_bytes())
-            .collect()
-    }
-
-    pub fn partial_evaluate(&mut self, index: usize, eval_point: F) -> SumPoly<F> {
+    pub fn partial_evaluate(&mut self, index: usize, eval_point: F) -> Self {
         let partials = self
             .product_polys
             .iter_mut()
@@ -48,25 +41,29 @@ impl<F: PrimeField> SumPoly<F> {
             })
             .collect();
 
-        SumPoly::new(partials)
+        Self { product_polys: partials }
     }
 
-    pub fn sum_reduce(&mut self) -> ProductPoly<F> {
-        let mut polyy = Vec::new();
-        let mut new_poly = Vec::new();
-        for poly in self.product_polys.iter_mut() {
-            let sum_poly = poly.product_reduce();
-            new_poly.push(sum_poly);
-        }
-        let product = ProductPoly::new(new_poly);
-        let mut newer_poly = vec![F::zero(); 1 << self.degree()];
-        for poly in product.poly_coefficients.iter() {
-            for (i, coeff) in poly.coefficients.iter().enumerate() {
-                newer_poly[i] += coeff;
+    pub fn sum_reduce(&mut self) -> MultilinearPolynomial<F> {
+        assert!(self.product_polys.len() > 1, "More than one polynomial is required");
+        let first_product = &self.product_polys[0].product_reduce();
+        let mut resultant_values = first_product.coefficients.clone();
+
+        for product_poly in self.product_polys.iter_mut().skip(1) {
+            let successive_products = product_poly.product_reduce();
+            for (i, value) in successive_products.coefficients.iter().enumerate() {
+                resultant_values[i] += value;
             }
         }
-        polyy.push(MultilinearPolynomial::new(newer_poly));
-        ProductPoly::new(polyy)
+
+        MultilinearPolynomial::new(resultant_values)
+    }
+
+    pub fn convert_to_bytes(&self) -> Vec<u8> {
+        self.product_polys
+            .iter()
+            .flat_map(|poly| poly.convert_to_bytes())
+            .collect()
     }
 }
 
@@ -117,30 +114,23 @@ mod tests {
         let eval_point = Fq::from(5);
         let partials = sum_poly.partial_evaluate(0, eval_point);
         println!("{:?}", &partials);
-        // assert_eq!(
-        //     partials.poly_coefficients[0].coefficients,
-        //     to_field(vec![0, 17, 0, 17])
-        // );
-        // assert_eq!(
-        //     partials.poly_coefficients[1].coefficients,
-        //     to_field(vec![0, 17, 0, 17])
-        // );
+        assert_eq!(
+            partials.product_polys[0].poly_coefficients[0].coefficients,
+            to_field(vec![0, 17])
+        );
     }
 
     #[test]
     fn test_sum_poly_sum_reduce() {
         let mul1 = MultilinearPolynomial::new(to_field(vec![0, 3, 2, 5]));
         let mul2 = MultilinearPolynomial::new(to_field(vec![0, 0, 0, 4]));
-        let mul5 = MultilinearPolynomial::new(to_field(vec![0, 0, 0, 4]));
         let mul3 = MultilinearPolynomial::new(to_field(vec![0, 3, 2, 5]));
-        let mul6 = MultilinearPolynomial::new(to_field(vec![0, 0, 0, 4]));
         let mul4 = MultilinearPolynomial::new(to_field(vec![0, 0, 0, 4]));
         let poly1: ProductPoly<Fq> = ProductPoly::new(vec![mul1, mul2]);
         let poly2: ProductPoly<Fq> = ProductPoly::new(vec![mul3, mul4]);
-        let poly3: ProductPoly<Fq> = ProductPoly::new(vec![mul5, mul6]);
         let mut sum_poly = SumPoly::new(vec![poly1, poly2]);
         let reduced_sum_poly = sum_poly.sum_reduce();
-        // assert_eq!(reduced_sum_poly.poly_coefficients[0].coefficients, to_field(vec![0, 4, 0, 10]));
+        assert_eq!(reduced_sum_poly.coefficients, to_field(vec![0, 0, 0, 40]));
         println!("{:?}", reduced_sum_poly);
     }
 

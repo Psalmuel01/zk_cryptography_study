@@ -1,6 +1,6 @@
-use ark_ff::{BigInteger, PrimeField};
-use multivariate_poly::{partial_evaluate, MultilinearPolynomial};
 use crate::prover::split_and_sum;
+use ark_ff::PrimeField;
+use multivariate_poly::{partial_evaluate, MultilinearPolynomial};
 
 #[derive(Debug, Clone)]
 struct Prover<F: PrimeField> {
@@ -20,32 +20,39 @@ struct SumCheck<F: PrimeField> {
     // challenges: Vec<F>
 }
 
-impl <F: PrimeField> SumCheck<F> {
+impl<F: PrimeField> SumCheck<F> {
     fn init(poly: MultilinearPolynomial<F>) -> Self {
         Self {
             poly: poly.clone(),
-            verifier: Verifier { challenges: vec![], initial_poly: poly },
+            verifier: Verifier {
+                challenges: vec![],
+                initial_poly: poly,
+            },
             // claimed_sums,
             // challenges,
         }
     }
 
-    fn prove (&mut self, claimed_sum: F) -> Prover<F> {
+    fn prove(&mut self, claimed_sum: F) -> Prover<F> {
         let mut poly_coeff = self.poly.coefficients.clone();
         if self.verifier.challenges.len() > 0 {
             dbg!("now check challenge");
-            poly_coeff = partial_evaluate(self.poly.coefficients.to_vec(), 0, self.verifier.challenges[0]);
+            poly_coeff = partial_evaluate(
+                self.poly.coefficients.to_vec(),
+                0,
+                self.verifier.challenges[0],
+            );
             self.poly.coefficients = poly_coeff.clone();
         }
         let round_poly = split_and_sum(&poly_coeff);
-        
+
         Prover {
             claimed_sum,
-            univariate_poly: round_poly
+            univariate_poly: round_poly,
         }
     }
 
-    fn verify (&mut self, prover: Prover<F>, challenge: F) -> bool {
+    fn verify(&mut self, prover: Prover<F>, challenge: F) -> bool {
         let round_poly = prover.univariate_poly;
         dbg!(round_poly);
         dbg!(prover.claimed_sum);
@@ -54,22 +61,25 @@ impl <F: PrimeField> SumCheck<F> {
         }
         self.verifier.challenges.insert(0, challenge);
 
-        if self.verifier.challenges.len() == self.verifier.initial_poly.dimension() {
+        if self.verifier.challenges.len() == self.verifier.initial_poly.no_of_variables() {
             dbg!("last round!");
-            let verifier_sum = round_poly[0] + self.verifier.challenges[0] * (round_poly[1] - round_poly[0]);
+            let verifier_sum =
+                round_poly[0] + self.verifier.challenges[0] * (round_poly[1] - round_poly[0]);
             self.verifier.challenges.reverse();
-            let total_sum = self.verifier.initial_poly.evaluate(&self.verifier.challenges);
+            let total_sum = self
+                .verifier
+                .initial_poly
+                .evaluate(&self.verifier.challenges);
             dbg!(verifier_sum);
             dbg!(total_sum);
             if verifier_sum != total_sum {
-            return false
+                return false;
             }
         }
 
         true
     }
 }
-
 
 #[cfg(test)]
 mod tests {

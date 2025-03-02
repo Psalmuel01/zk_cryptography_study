@@ -37,7 +37,7 @@ impl<F: PrimeField> Prover<F> {
 
         let mut poly = self.initial_poly.clone();
 
-        for _ in 0..self.initial_poly.dimension() {
+        for _ in 0..self.initial_poly.no_of_variables() {
             let round_poly_coeffs = split_and_sum(&poly.coefficients);
             let round_poly = MultilinearPolynomial::new(round_poly_coeffs.to_vec());
             self.transcripts

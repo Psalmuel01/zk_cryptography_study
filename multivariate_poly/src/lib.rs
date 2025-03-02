@@ -24,13 +24,13 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
         }
     }
 
-    pub fn dimension(&self) -> usize {
+    pub fn no_of_variables(&self) -> usize {
         let size = self.coefficients.len();
         (size as f64).log2().ceil() as usize
     }
 
     pub fn evaluate(&self, evaluations: &Vec<F>) -> F {
-        if evaluations.len() != Self::dimension(&self) {
+        if evaluations.len() != Self::no_of_variables(&self) {
             panic!("Invalid number of evaluations");
         } else {
             let mut poly = self.clone();
