@@ -12,13 +12,13 @@ pub struct SumCheckProof<F: PrimeField> {
 }
 
 #[derive(Debug, Clone)]
-pub struct GKRProver<F: PrimeField> {
+pub struct PartialProver<F: PrimeField> {
     pub initial_poly: SumPoly<F>,
     pub claimed_sum: F,
     pub transcripts: Transcript<Keccak256, F>,
 }
 
-impl<F: PrimeField> GKRProver<F> {
+impl<F: PrimeField> PartialProver<F> {
     pub fn new(poly: SumPoly<F>, claimed_sum: F) -> Self {
         Self {
             initial_poly: poly,
@@ -158,7 +158,7 @@ mod tests {
         let poly1: ProductPoly<Fq> = ProductPoly::new(vec![mul1, mul2]);
         let poly2: ProductPoly<Fq> = ProductPoly::new(vec![mul3, mul4]);
         let sum_poly = SumPoly::new(vec![poly1, poly2]);
-        let mut prover = GKRProver::new(sum_poly, Fq::from(13));
+        let mut prover = PartialProver::new(sum_poly, Fq::from(13));
         let proof = prover.prove();
         println!("{:?}", proof);
         let verify = prover.verify(proof);

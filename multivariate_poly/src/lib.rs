@@ -1,5 +1,6 @@
 pub mod product_poly;
 pub mod sum_poly;
+
 use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,6 +60,11 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
             .iter()
             .flat_map(|coeff| coeff.into_bigint().to_bytes_be())
             .collect()
+    }
+
+    pub fn scalar_mul(&self, scalar: F) -> Self {
+        let result = self.coefficients.iter().map(|coeff| scalar * coeff).collect();
+        Self::new(result)
     }
 }
 
@@ -153,6 +159,12 @@ pub fn total_evaluate<F: PrimeField>(mut points: Vec<F>, evaluations: Vec<F>) ->
     }
 
     hypercube.iter().map(|point| point.result).collect() // Return final results
+}
+
+pub fn add_polynomials<F: PrimeField>(a: MultilinearPolynomial<F>, b: MultilinearPolynomial<F>) -> MultilinearPolynomial<F> {
+    assert!(a.coefficients.len() == b.coefficients.len());
+    let summed_poly = a.coefficients.iter().zip(b.coefficients.iter()).map(|(a, b)| *a + *b).collect();
+    MultilinearPolynomial::new(summed_poly)
 }
 
 pub fn tensor_add<F: PrimeField>(
@@ -294,6 +306,14 @@ mod tests {
     }
 
     #[test]
+    fn test_scalar_mul () {
+        let poly = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
+        let scalar_mul = poly.scalar_mul(Fq::from(3));
+        let expected = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(6)]);
+        assert_eq!(scalar_mul, expected);
+    }
+
+    #[test]
     fn test_tensor_add() {
         let poly_1 = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
         let poly_2 = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4)]);
@@ -320,5 +340,14 @@ mod tests {
         let poly_bytes = polynomial.convert_to_bytes();
         println!("{:?}", poly_bytes);
         assert_eq!(poly_bytes.len(), 128);
+    }
+
+    #[test]
+    fn test_add_polynomials() {
+        let poly1 = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
+        let poly2 = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(4)]);
+        let result = add_polynomials(poly1, poly2);
+        let expected = MultilinearPolynomial::new(vec![Fq::from(4), Fq::from(6)]);
+        assert_eq!(result, expected);
     }
 }

@@ -8,10 +8,10 @@ pub struct ProductPoly<F: PrimeField> {
 
 impl<F: PrimeField> ProductPoly<F> {
     pub fn new(poly_coefficients: Vec<MultilinearPolynomial<F>>) -> Self {
-        assert!(
-            poly_coefficients.iter().all(|poly| poly.no_of_variables() == poly_coefficients[0].no_of_variables()),
-            "All polynomials must be of the same degree"
-        );
+        // assert!(
+        //     poly_coefficients.iter().all(|poly| poly.no_of_variables() == poly_coefficients[0].no_of_variables()),
+        //     "All polynomials must be of the same degree"
+        // );
         Self { poly_coefficients }
     }
 

@@ -17,7 +17,7 @@ impl<F: PrimeField> Verify<F> {
         }
     }
 
-    pub(crate) fn verify(&mut self, proof: Proof<F>) -> bool {
+    pub fn verify(&mut self, proof: Proof<F>) -> bool {
         let mut challenges = vec![];
 
         // self.initial_poly = initial_poly.clone();

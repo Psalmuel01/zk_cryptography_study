@@ -1,5 +1,8 @@
 use ark_ff::PrimeField;
-use multivariate_poly::{product_poly::ProductPoly, sum_poly::SumPoly, tensor_add, tensor_mul, MultilinearPolynomial};
+use multivariate_poly::{
+    add_polynomials, product_poly::ProductPoly, sum_poly::SumPoly, tensor_add, tensor_mul,
+    MultilinearPolynomial,
+};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -62,15 +65,15 @@ impl<F: PrimeField> Layer<F> {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-struct Circuit<F: PrimeField> {
+pub struct Circuit<F: PrimeField> {
     inputs: Vec<F>,
     layers: Vec<Layer<F>>,
-    outputs: Vec<Vec<F>>,
+    pub outputs: Vec<Vec<F>>,
 }
 
 #[allow(dead_code)]
 impl<F: PrimeField> Circuit<F> {
-    fn create(inputs: Vec<F>, layers: Vec<Layer<F>>) -> Self {
+    pub fn create(inputs: Vec<F>, layers: Vec<Layer<F>>) -> Self {
         Self {
             inputs,
             layers,
@@ -78,7 +81,7 @@ impl<F: PrimeField> Circuit<F> {
         }
     }
 
-    fn execute(&mut self) -> Vec<Vec<F>> {
+    pub fn execute(&mut self) -> Vec<Vec<F>> {
         let mut inputs = self.inputs.clone();
 
         for layer in self.layers.iter_mut().rev() {
@@ -89,7 +92,7 @@ impl<F: PrimeField> Circuit<F> {
         self.outputs.clone()
     }
 
-    fn w_i_polynomial(&self, layer_index: usize) -> MultilinearPolynomial<F> {
+    pub fn w_i_polynomial(&self, layer_index: usize) -> MultilinearPolynomial<F> {
         assert!(layer_index <= self.outputs.len(), "layer doesn't exist");
         if layer_index == self.outputs.len() {
             let layer_coeffs = self.inputs.clone();
@@ -100,7 +103,7 @@ impl<F: PrimeField> Circuit<F> {
         }
     }
 
-    fn add_i_n_mul_i_arrays(
+    pub fn add_i_n_mul_i_arrays(
         &self,
         layer_index: usize,
     ) -> (MultilinearPolynomial<F>, MultilinearPolynomial<F>) {
@@ -132,22 +135,57 @@ impl<F: PrimeField> Circuit<F> {
         (add_i_poly, mul_i_poly)
     }
 
-    fn f_b_c(&self, layer_index: usize, a_s: Vec<F>) -> SumPoly<F> {
+    // New addi+1 = alpha * addi+1(rb, b, c) + beta * addi+1(rc, b, c)
+    // where alpha & beta are squeezed from transcript, rb = first half of random chal sent from the sumcheck prover and rc = second half of random chal sent from the sumcheck prover
+    pub fn alpha_beta_add_n_mul_bc(
+        &self,
+        alpha: F,
+        beta: F,
+        r_bs: &Vec<F>,
+        r_cs: &Vec<F>,
+        layer_index: usize,
+    ) -> (MultilinearPolynomial<F>, MultilinearPolynomial<F>) {
         let (add_i_poly, mul_i_poly) = self.add_i_n_mul_i_arrays(layer_index);
-        // dbg!(add_i_poly.clone());
-        // dbg!(mul_i_poly.clone());
-        let mut add_bc = add_i_poly;
-        let mut mul_bc = mul_i_poly;
-        for i in 0..a_s.len() {
-            add_bc = add_bc.partial_evaluate(0, a_s[i]);
-            mul_bc = mul_bc.partial_evaluate(0, a_s[i]);
+
+        let mut add_r_b = add_i_poly.partial_evaluate(0, r_bs[0]);
+        let mut add_r_c = add_i_poly.partial_evaluate(0, r_cs[0]);
+
+        let mut mul_r_b = mul_i_poly.partial_evaluate(0, r_bs[0]);
+        let mut mul_r_c = mul_i_poly.partial_evaluate(0, r_cs[0]);
+
+        for rb in r_bs.iter().skip(1) {
+            add_r_b = add_r_b.partial_evaluate(0, *rb);
+            mul_r_b = mul_r_b.partial_evaluate(0, *rb);
         }
 
+        for rc in r_cs.iter().skip(1) {
+            add_r_c = add_r_c.partial_evaluate(0, *rc);
+            mul_r_c = mul_r_c.partial_evaluate(0, *rc);
+        }
+
+        let new_add_i = add_polynomials(add_r_b.scalar_mul(alpha), add_r_c.scalar_mul(beta));
+        let new_mul_i = add_polynomials(mul_r_b.scalar_mul(alpha), mul_r_c.scalar_mul(beta));
+
+        (new_add_i, new_mul_i)
+    }
+
+    pub fn f_b_c(&self, layer_index: usize, a_s: Vec<F>, alpha: Option<F>, beta: Option<F>, r_bs: Option<&Vec<F>>, r_cs: Option<&Vec<F>>) -> SumPoly<F> {
+        let (add_i_poly, mul_i_poly) = self.add_i_n_mul_i_arrays(layer_index);
+
+        let mut add_bc = add_i_poly;
+        let mut mul_bc = mul_i_poly;
+
+        let (add_bc, mul_bc) = if layer_index == 0 {
+            for i in 0..a_s.len() {
+                add_bc = add_bc.partial_evaluate(0, a_s[i]);
+                mul_bc = mul_bc.partial_evaluate(0, a_s[i]);
+            }
+            (add_bc, mul_bc)
+        } else {
+            self.alpha_beta_add_n_mul_bc(alpha.unwrap(), beta.unwrap(), r_bs.unwrap(), r_cs.unwrap(), layer_index)
+        };
+
         let w_i = self.w_i_polynomial(layer_index + 1);
-        // dbg!(w_i.clone());
-        // let mut w = ProductPoly::new(vec![w_i.clone(), w_i.clone()]);
-        // let w_add_bc = w.sum_reduce();
-        // let w_mul_bc = w.product_reduce();
         let w_add_bc = tensor_add(w_i.clone(), w_i.clone());
         let w_mul_bc = tensor_mul(w_i.clone(), w_i.clone());
 
@@ -217,8 +255,12 @@ mod test {
 
         let mut circuit = Circuit::create(inputs, vec![layer_0, layer_1, layer_2]);
         circuit.execute();
-        let f_b_c = circuit.f_b_c(2, to_field(vec![5]));
-        // dbg!(f_b_c);
+        let rbs = to_field(vec![1, 2, 3]);
+        let rcs = to_field(vec![3, 4, 5]);
+        let f_b_c = circuit.f_b_c(0, to_field(vec![5]), None, None, None, None);
+        let f_b_c2 = circuit.f_b_c(1, to_field(vec![5]), Some(Fq::from(2)), Some(Fq::from(3)), Some(&rbs), Some(&rcs));
+        dbg!(f_b_c);
+        dbg!(f_b_c2);
     }
 
     #[test]
@@ -297,6 +339,8 @@ mod test {
                 0, 0, 0, 0
             ])
         );
+        dbg!(add_i_poly);
+        dbg!(mul_i_poly);
 
         // assert_eq!(add_i_values, vec!["00000001"]);
         // assert_eq!(mul_i_values, vec!["01010011", "10100101", "11110111"]);
