@@ -19,6 +19,6 @@ mod test {
         let check_proof = proof.prove();
 
         let mut verify = Verify::new(&eval_points);
-        dbg!(verify.verify(check_proof));
+        assert_eq!(verify.verify(check_proof), true);
     }
 }

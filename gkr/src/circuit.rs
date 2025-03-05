@@ -6,7 +6,7 @@ use multivariate_poly::{
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-struct Gate {
+pub struct Gate {
     op: char,
     left: usize,
     right: usize,
@@ -15,7 +15,7 @@ struct Gate {
 
 #[allow(dead_code)]
 impl Gate {
-    fn new(op: char, left: usize, right: usize, output: usize) -> Self {
+    pub fn new(op: char, left: usize, right: usize, output: usize) -> Self {
         Self {
             op,
             left,
@@ -39,14 +39,14 @@ impl Gate {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-struct Layer<F: PrimeField> {
+pub struct Layer<F: PrimeField> {
     gates: Vec<Gate>,
     outputs: Vec<F>,
 }
 
 #[allow(dead_code)]
 impl<F: PrimeField> Layer<F> {
-    fn init(gates: Vec<Gate>) -> Self {
+    pub fn init(gates: Vec<Gate>) -> Self {
         Self {
             gates,
             outputs: vec![],
@@ -66,8 +66,8 @@ impl<F: PrimeField> Layer<F> {
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Circuit<F: PrimeField> {
-    inputs: Vec<F>,
-    layers: Vec<Layer<F>>,
+    pub inputs: Vec<F>,
+    pub layers: Vec<Layer<F>>,
     pub outputs: Vec<Vec<F>>,
 }
 
@@ -188,7 +188,8 @@ impl<F: PrimeField> Circuit<F> {
         let w_i = self.w_i_polynomial(layer_index + 1);
         let w_add_bc = tensor_add(w_i.clone(), w_i.clone());
         let w_mul_bc = tensor_mul(w_i.clone(), w_i.clone());
-
+        println!("add_bc: {:?}", add_bc.clone());
+        println!("w_add_bc: {:?}", w_add_bc.clone());
         SumPoly::new(vec![
             ProductPoly::new(vec![add_bc, w_add_bc]),
             ProductPoly::new(vec![mul_bc, w_mul_bc]),
@@ -255,12 +256,8 @@ mod test {
 
         let mut circuit = Circuit::create(inputs, vec![layer_0, layer_1, layer_2]);
         circuit.execute();
-        let rbs = to_field(vec![1, 2, 3]);
-        let rcs = to_field(vec![3, 4, 5]);
         let f_b_c = circuit.f_b_c(0, to_field(vec![5]), None, None, None, None);
-        let f_b_c2 = circuit.f_b_c(1, to_field(vec![5]), Some(Fq::from(2)), Some(Fq::from(3)), Some(&rbs), Some(&rcs));
         dbg!(f_b_c);
-        dbg!(f_b_c2);
     }
 
     #[test]

@@ -5,109 +5,103 @@ use sum_check::transcript::Transcript;
 use univariate_poly::UnivariatePolynomial;
 
 #[derive(Debug, Clone)]
-pub struct SumCheckProof<F: PrimeField> {
+pub struct PartialProof<F: PrimeField> {
     pub claimed_sum: F,
     pub round_polys: Vec<UnivariatePolynomial<F>>,
     pub random_challenges: Vec<F>,
 }
 
 #[derive(Debug, Clone)]
-pub struct PartialProver<F: PrimeField> {
-    pub initial_poly: SumPoly<F>,
-    pub claimed_sum: F,
-    pub transcripts: Transcript<Keccak256, F>,
+pub struct PartialVerif<F: PrimeField> {
+    pub is_proof_valid: bool,
+    pub random_challenges: Vec<F>,
+    pub last_claimed_sum: F,
 }
 
-impl<F: PrimeField> PartialProver<F> {
-    pub fn new(poly: SumPoly<F>, claimed_sum: F) -> Self {
-        Self {
-            initial_poly: poly,
-            claimed_sum: claimed_sum,
-            transcripts: Transcript::init(Keccak256::default()),
-        }
+pub fn partial_prove<F: PrimeField>(
+    sum_poly: SumPoly<F>,
+    claimed_sum: F,
+    transcript: &mut Transcript<Keccak256, F>,
+) -> PartialProof<F> {
+    // transcript.absorb(initial_poly.convert_to_bytes().as_slice());
+    transcript.absorb(claimed_sum.into_bigint().to_bytes_be().as_slice());
+
+    let mut round_polys = Vec::new();
+    let mut current_poly = sum_poly.clone();
+    let mut random_challenges = Vec::new();
+    let no_of_variables = sum_poly.no_of_variables();
+
+    for _ in 0..no_of_variables {
+        let round_split = split_and_sum(current_poly.clone());
+
+        let x_values: Vec<F> = (0..=sum_poly.degree()).map(|i| F::from(i as u64)).collect();
+        // let y_values: Vec<F> = round_split;
+
+        let points: Vec<(F, F)> = x_values
+            .iter()
+            .zip(round_split.iter())
+            .map(|(x, y)| (*x, *y))
+            .collect();
+
+        dbg!(&points);
+
+        let univariate_poly = UnivariatePolynomial::interpolate(points);
+        dbg!(&univariate_poly);
+
+        transcript.absorb(univariate_poly.convert_to_bytes().as_slice());
+        round_polys.push(univariate_poly);
+
+        let challenge: F = transcript.squeeze();
+        current_poly = current_poly.partial_evaluate(0, challenge);
+        random_challenges.push(challenge);
+        println!("challenge_prover: {}", challenge);
     }
 
-    pub fn prove(&mut self) -> SumCheckProof<F> {
-        // self.transcripts.absorb(self.initial_poly.convert_to_bytes().as_slice());
-        self.transcripts
-            .absorb(self.claimed_sum.into_bigint().to_bytes_be().as_slice());
+    println!("challengess: {:?}", random_challenges);
+    dbg!(claimed_sum);
+    dbg!(&round_polys);
 
-        let mut round_polys = Vec::new();
-        let mut current_poly = self.initial_poly.clone();
-        let mut random_challenges = Vec::new();
-        let no_of_variables = self.initial_poly.no_of_variables();
+    PartialProof {
+        claimed_sum: claimed_sum,
+        round_polys: round_polys,
+        random_challenges,
+    }
+}
 
-        for _ in 0..no_of_variables {
-            let round_split = split_and_sum(current_poly.clone());
+pub fn partial_verify<F: PrimeField>(
+    proof: &PartialProof<F>,
+    transcript: &mut Transcript<Keccak256, F>,
+) -> PartialVerif<F> {
+    // transcript.absorb(initial_poly.convert_to_bytes().as_slice());
+    transcript.absorb(proof.claimed_sum.into_bigint().to_bytes_be().as_slice());
 
-            let x_values: Vec<F> = (0..=self.initial_poly.degree())
-                .map(|i| F::from(i as u64))
-                .collect();
-            // let y_values: Vec<F> = round_split;
+    let mut current_claimed_sum = proof.claimed_sum;
+    let mut challenges = Vec::with_capacity(proof.round_polys.len());
 
-            let points: Vec<(F, F)> = x_values
-                .iter()
-                .zip(round_split.iter())
-                .map(|(x, y)| (*x, *y))
-                .collect();
-
-            println!("points: {:?}", points);
-
-            let univariate_poly = UnivariatePolynomial::interpolate(points.clone());
-            println!("univariate_poly: {:?}", univariate_poly);
-
-            self.transcripts
-                .absorb(univariate_poly.convert_to_bytes().as_slice());
-            round_polys.push(univariate_poly);
-
-            let challenge: F = self.transcripts.squeeze();
-            current_poly = current_poly.partial_evaluate(0, challenge);
-            random_challenges.push(challenge);
-            println!("challenge_prover: {}", challenge);
+    for round_poly in &proof.round_polys {
+        if round_poly.evaluate(F::from(0)) + round_poly.evaluate(F::from(1)) != current_claimed_sum
+        {
+            return PartialVerif {
+                is_proof_valid: false,
+                random_challenges: challenges,
+                last_claimed_sum: current_claimed_sum,
+            };
         }
 
-        println!("prover_round_poly: {:?}", round_polys);
-        println!("challengess: {:?}", random_challenges);
-        dbg!(self.claimed_sum);
-        dbg!(&round_polys);
+        transcript.absorb(round_poly.convert_to_bytes().as_slice());
+        let challenge: F = transcript.squeeze();
 
-        SumCheckProof {
-            claimed_sum: self.claimed_sum,
-            round_polys: round_polys,
-            random_challenges,
-        }
+        current_claimed_sum = round_poly.evaluate(challenge);
+        challenges.push(challenge);
+
+        dbg!(current_claimed_sum);
+        dbg!(round_poly.evaluate(challenge));
     }
 
-    pub fn verify(&mut self, proof: SumCheckProof<F>) -> bool {
-        // self.transcripts.absorb(self.initial_poly.convert_to_bytes().as_slice());
-        self.transcripts
-            .absorb(proof.claimed_sum.into_bigint().to_bytes_be().as_slice());
-
-        let mut current_claimed_sum = proof.claimed_sum;
-        let mut challenges = Vec::with_capacity(proof.round_polys.len());
-
-        for round_poly in proof.round_polys {
-            if round_poly.evaluate(F::from(0)) + round_poly.evaluate(F::from(1))
-                != current_claimed_sum
-            {
-                println!("failed to verify 1");
-                return false;
-            }
-            dbg!("check here");
-            self.transcripts
-                .absorb(round_poly.convert_to_bytes().as_slice());
-
-            let challenge: F = self.transcripts.squeeze();
-            current_claimed_sum = round_poly.evaluate(challenge);
-            println!("claimed_sum 2: {}", current_claimed_sum);
-            challenges.push(challenge);
-        }
-
-        // if claimed_sum != self.initial_poly.evaluate(challenges) {
-        //     println!("failed to verify 2");
-        //     return false;
-        // }
-        true
+    PartialVerif {
+        is_proof_valid: true,
+        random_challenges: challenges,
+        last_claimed_sum: current_claimed_sum,
     }
 }
 
@@ -158,10 +152,12 @@ mod tests {
         let poly1: ProductPoly<Fq> = ProductPoly::new(vec![mul1, mul2]);
         let poly2: ProductPoly<Fq> = ProductPoly::new(vec![mul3, mul4]);
         let sum_poly = SumPoly::new(vec![poly1, poly2]);
-        let mut prover = PartialProver::new(sum_poly, Fq::from(13));
-        let proof = prover.prove();
-        println!("{:?}", proof);
-        let verify = prover.verify(proof);
-        assert_eq!(verify, true);
+        let mut prover_transcript = Transcript::<Keccak256, Fq>::init(Keccak256::default());
+        let mut verifier_transcript = Transcript::<Keccak256, Fq>::init(Keccak256::default());
+
+        let proof = partial_prove(sum_poly, Fq::from(13), &mut prover_transcript);
+        dbg!(&proof);
+        let verify = partial_verify(&proof, &mut verifier_transcript);
+        assert_eq!(verify.is_proof_valid, true);
     }
 }

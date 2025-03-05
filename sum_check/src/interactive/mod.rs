@@ -16,10 +16,9 @@ struct Verifier<F: PrimeField> {
 struct SumCheck<F: PrimeField> {
     poly: MultilinearPolynomial<F>,
     verifier: Verifier<F>,
-    // claimed_sums: Vec<F>,
-    // challenges: Vec<F>
 }
 
+#[allow(dead_code)]
 impl<F: PrimeField> SumCheck<F> {
     fn init(poly: MultilinearPolynomial<F>) -> Self {
         Self {
@@ -28,8 +27,6 @@ impl<F: PrimeField> SumCheck<F> {
                 challenges: vec![],
                 initial_poly: poly,
             },
-            // claimed_sums,
-            // challenges,
         }
     }
 
