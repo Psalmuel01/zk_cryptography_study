@@ -7,3 +7,4 @@ edition = "2024"
 ark-bls12-381 = "0.5.0"
 ark-ec = "0.5.0"
 ark-ff = "0.5.0"
+multivariate_poly = {path = "../multivariate_poly"}
