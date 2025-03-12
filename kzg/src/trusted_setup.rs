@@ -4,7 +4,7 @@ use ark_ff::PrimeField;
 #[derive(Debug)]
 pub struct TrustedSetup<P: Pairing> {
     pub size: usize,
-    pub g1_basis: Vec<P::G1>,
+    pub g1_taus: Vec<P::G1>,
     pub g2_taus: Vec<P::G2>,
 }
 
@@ -17,7 +17,7 @@ impl<P: Pairing> TrustedSetup<P> {
 
         let lagrange_basis = compute_lagrange_basis(taus);
 
-        let g1_basis = lagrange_basis
+        let g1_taus = lagrange_basis
             .iter()
             .map(|val| g1_generator.mul_bigint(val.into_bigint()))
             .collect();
@@ -28,7 +28,7 @@ impl<P: Pairing> TrustedSetup<P> {
 
         TrustedSetup {
             size,
-            g1_basis,
+            g1_taus,
             g2_taus,
         }
     }
