@@ -1,8 +1,10 @@
-pub mod helpers;
 pub mod trusted_setup;
 
-use ark_ec::{PrimeGroup, pairing::Pairing};
-use ark_ff::{PrimeField, Zero};
+use ark_ec::{
+    PrimeGroup,
+    pairing::{Pairing, PairingOutput},
+};
+use ark_ff::{AdditiveGroup, PrimeField, Zero};
 use multivariate_poly::MultilinearPolynomial;
 use trusted_setup::TrustedSetup;
 
@@ -13,7 +15,7 @@ pub struct KZG<F: PrimeField, P: Pairing> {
 
 #[derive(Debug)]
 pub struct KZGProof<F: PrimeField, P: Pairing> {
-    // pub commitment: P::G1,
+    pub commitment: P::G1,
     pub poly_opened: F,
     pub quotient_evals: Vec<P::G1>,
 }
@@ -23,20 +25,13 @@ impl<F: PrimeField, P: Pairing> KZG<F, P> {
         Self { poly, setup }
     }
 
-    pub fn commit(&self) -> P::G1 {
-        let mut commitment = P::G1::zero();
+    pub fn prove(&self, open_vals: &Vec<F>) -> KZGProof<F, P> {
+        // commit poly
+        let commitment = commit::<F, P>(&self.setup.g1_taus, &self.poly.coefficients);
 
-        for (i, g1_tau) in self.setup.g1_taus.iter().enumerate() {
-            commitment += g1_tau.mul_bigint(self.poly.coefficients[i].into_bigint());
-        }
-
-        commitment
-    }
-
-    pub fn prove(&self, open_vals: Vec<F>) -> KZGProof<F, P> {
-        let mut quotient_evals = Vec::with_capacity(open_vals.len());
         // open poly
         let v = self.poly.evaluate(&open_vals);
+
         // compute poly minus v
         let poly_minus_v = self
             .poly
@@ -45,6 +40,8 @@ impl<F: PrimeField, P: Pairing> KZG<F, P> {
             .map(|coeff| *coeff - v)
             .collect();
         let sub_poly = MultilinearPolynomial::new(poly_minus_v);
+
+        let mut quotient_evals = Vec::with_capacity(open_vals.len());
 
         for i in 0..open_vals.len() {
             let quotient_poly = compute_quotient(&sub_poly);
@@ -61,10 +58,46 @@ impl<F: PrimeField, P: Pairing> KZG<F, P> {
         }
 
         KZGProof {
+            commitment,
             poly_opened: v,
             quotient_evals,
         }
     }
+
+    pub fn verify(&self, proof: KZGProof<F, P>, open_vals: &Vec<F>) -> bool {
+        let g1_generator = P::G1::generator();
+        let g2_generator = P::G2::generator();
+
+        // pairing(g1_(f(τ) - v), g2_1) == pairing(Σ(g1_Q(τ), g2_(τ - a)))
+
+        let lhs = P::pairing(
+            proof.commitment - g1_generator.mul_bigint(proof.poly_opened.into_bigint()),
+            g2_generator,
+        );
+
+        let mut rhs = PairingOutput::ZERO;
+        for (i, tau) in self.setup.g2_taus.iter().enumerate() {
+            rhs += P::pairing(
+                proof.quotient_evals[i],
+                *tau - g2_generator.mul_bigint(open_vals[i].into_bigint()),
+            );
+        }
+
+        dbg!(&lhs);
+        dbg!(&rhs);
+
+        lhs == rhs
+    }
+}
+
+pub fn commit<F: PrimeField, P: Pairing>(g1_taus: &Vec<<P>::G1>, poly_coeffs: &Vec<F>) -> P::G1 {
+    let mut commitment = P::G1::zero();
+
+    for (i, g1_tau) in g1_taus.iter().enumerate() {
+        commitment += g1_tau.mul_bigint(poly_coeffs[i].into_bigint());
+    }
+
+    commitment
 }
 
 pub fn compute_quotient<F: PrimeField>(
@@ -78,7 +111,7 @@ pub fn compute_quotient<F: PrimeField>(
         .zip(eval_zero.iter())
         .map(|(eval_one, eval_zero)| *eval_one - *eval_zero)
         .collect();
-    dbg!(&quotient);
+    // dbg!(&quotient);
     MultilinearPolynomial::new(quotient)
 }
 
@@ -116,30 +149,7 @@ pub mod tests {
     use ark_bls12_381::{Bls12_381, Fr};
 
     #[test]
-    fn test_commit() {
-        let taus = vec![Fr::from(5), Fr::from(2), Fr::from(3)];
-        let setup = TrustedSetup::<Bls12_381>::initialize(&taus);
-        let values = vec![
-            Fr::from(0),
-            Fr::from(4),
-            Fr::from(0),
-            Fr::from(4),
-            Fr::from(0),
-            Fr::from(4),
-            Fr::from(3),
-            Fr::from(7),
-        ];
-        let poly = MultilinearPolynomial::new(values);
-        let kzg = KZG::init(poly, setup);
-        let commitment = kzg.commit();
-        dbg!(&commitment);
-        // let blowup = blow_up(poly, 2);
-        // let evaluation = open_poly(poly, taus);
-        // dbg!(evaluation);
-    }
-
-    #[test]
-    fn test_prove() {
+    fn test_kzg() {
         let taus = vec![Fr::from(5), Fr::from(2), Fr::from(3)];
         let setup = TrustedSetup::<Bls12_381>::initialize(&taus);
         let values = vec![
@@ -156,7 +166,12 @@ pub mod tests {
         let kzg = KZG::init(poly, setup);
 
         let open_vals = vec![Fr::from(6), Fr::from(4), Fr::from(0)];
-        let proof = kzg.prove(open_vals);
+        let proof = kzg.prove(&open_vals);
         dbg!(&proof);
+
+        let verify = kzg.verify(proof, &open_vals);
+        dbg!(verify);
+
+        assert_eq!(verify, true);
     }
 }
