@@ -3,14 +3,15 @@ use ark_ff::PrimeField;
 
 #[derive(Debug)]
 pub struct TrustedSetup<P: Pairing> {
-    pub size: usize,
+    // pub size: usize,
     pub g1_taus: Vec<P::G1>,
     pub g2_taus: Vec<P::G2>,
 }
 
 impl<P: Pairing> TrustedSetup<P> {
     pub fn initialize<F: PrimeField>(taus: &Vec<F>) -> TrustedSetup<P> {
-        let size = taus.len();
+        // let size = taus.len();
+        assert!(!taus.is_empty(), "requires at least one variable");
 
         let g1_generator = P::G1::generator();
         let g2_generator = P::G2::generator();
@@ -27,7 +28,7 @@ impl<P: Pairing> TrustedSetup<P> {
             .collect();
 
         TrustedSetup {
-            size,
+            // size,
             g1_taus,
             g2_taus,
         }
@@ -81,6 +82,6 @@ pub mod tests {
     fn test_initialize() {
         let tau_arr = vec![Fr::from(5), Fr::from(2), Fr::from(3)];
         let _result = TrustedSetup::<Bls12_381>::initialize::<Fr>(&tau_arr);
-        // dbg!(&_result);
+        dbg!(&_result);
     }
 }

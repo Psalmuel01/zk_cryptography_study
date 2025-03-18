@@ -39,7 +39,7 @@ impl<F: PrimeField, P: Pairing> KZG<F, P> {
             .iter()
             .map(|coeff| *coeff - v)
             .collect();
-        let sub_poly = MultilinearPolynomial::new(poly_minus_v);
+        let mut sub_poly = MultilinearPolynomial::new(poly_minus_v);
 
         let mut quotient_evals = Vec::with_capacity(open_vals.len());
 
@@ -55,7 +55,11 @@ impl<F: PrimeField, P: Pairing> KZG<F, P> {
                 .map(|(g1_taus, coeffs)| g1_taus.mul_bigint(coeffs.into_bigint()))
                 .sum();
             quotient_evals.push(quotient_eval);
+
+            let remainder = sub_poly.partial_evaluate(0, open_vals[i]);
+            sub_poly = remainder;
         }
+        assert_eq!(sub_poly.coefficients[0], F::zero());
 
         KZGProof {
             commitment,
@@ -72,7 +76,7 @@ impl<F: PrimeField, P: Pairing> KZG<F, P> {
 
         let lhs = P::pairing(
             proof.commitment - g1_generator.mul_bigint(proof.poly_opened.into_bigint()),
-            g2_generator,
+            g2_generator.mul_bigint(F::one().into_bigint()),
         );
 
         let mut rhs = PairingOutput::ZERO;
@@ -97,6 +101,7 @@ pub fn commit<F: PrimeField, P: Pairing>(g1_taus: &Vec<<P>::G1>, poly_coeffs: &V
         commitment += g1_tau.mul_bigint(poly_coeffs[i].into_bigint());
     }
 
+    // dbg!(&commitment);
     commitment
 }
 
@@ -161,6 +166,33 @@ pub mod tests {
             Fr::from(4),
             Fr::from(3),
             Fr::from(7),
+        ];
+        let poly = MultilinearPolynomial::new(values);
+        let kzg = KZG::init(poly, setup);
+
+        let open_vals = vec![Fr::from(6), Fr::from(4), Fr::from(0)];
+        let proof = kzg.prove(&open_vals);
+        dbg!(&proof);
+
+        let verify = kzg.verify(proof, &open_vals);
+        dbg!(verify);
+
+        assert_eq!(verify, true);
+    }
+
+    #[test]
+    fn test_verify_1_8() {
+        let taus = vec![Fr::from(5), Fr::from(2), Fr::from(3)];
+        let setup = TrustedSetup::<Bls12_381>::initialize(&taus);
+        let values = vec![
+            Fr::from(1),
+            Fr::from(2),
+            Fr::from(3),
+            Fr::from(4),
+            Fr::from(5),
+            Fr::from(6),
+            Fr::from(7),
+            Fr::from(8),
         ];
         let poly = MultilinearPolynomial::new(values);
         let kzg = KZG::init(poly, setup);
