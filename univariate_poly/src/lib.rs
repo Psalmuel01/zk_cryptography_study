@@ -20,9 +20,9 @@ impl<F: PrimeField> UnivariatePolynomial<F> {
     }
     pub fn degree(&self) -> usize {
         self.coefficients
-        .iter()
-        .rposition(|&coeff| coeff != F::zero())
-        .unwrap_or(0)
+            .iter()
+            .rposition(|&coeff| coeff != F::zero())
+            .unwrap_or(0)
     }
 
     pub fn convert_to_bytes(&self) -> Vec<u8> {

@@ -169,7 +169,15 @@ impl<F: PrimeField> Circuit<F> {
         (new_add_i, new_mul_i)
     }
 
-    pub fn f_b_c(&self, layer_index: usize, a_s: Vec<F>, alpha: Option<F>, beta: Option<F>, r_bs: Option<&Vec<F>>, r_cs: Option<&Vec<F>>) -> SumPoly<F> {
+    pub fn f_b_c(
+        &self,
+        layer_index: usize,
+        a_s: Vec<F>,
+        alpha: Option<F>,
+        beta: Option<F>,
+        r_bs: Option<&Vec<F>>,
+        r_cs: Option<&Vec<F>>,
+    ) -> SumPoly<F> {
         let (add_i_poly, mul_i_poly) = self.add_i_n_mul_i_arrays(layer_index);
 
         let mut add_bc = add_i_poly;
@@ -182,7 +190,13 @@ impl<F: PrimeField> Circuit<F> {
             }
             (add_bc, mul_bc)
         } else {
-            self.alpha_beta_add_n_mul_bc(alpha.unwrap(), beta.unwrap(), r_bs.unwrap(), r_cs.unwrap(), layer_index)
+            self.alpha_beta_add_n_mul_bc(
+                alpha.unwrap(),
+                beta.unwrap(),
+                r_bs.unwrap(),
+                r_cs.unwrap(),
+                layer_index,
+            )
         };
 
         let w_i = self.w_i_polynomial(layer_index + 1);

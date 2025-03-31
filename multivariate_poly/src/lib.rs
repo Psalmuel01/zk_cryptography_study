@@ -63,7 +63,11 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
     }
 
     pub fn scalar_mul(&self, scalar: F) -> Self {
-        let result = self.coefficients.iter().map(|coeff| scalar * coeff).collect();
+        let result = self
+            .coefficients
+            .iter()
+            .map(|coeff| scalar * coeff)
+            .collect();
         Self::new(result)
     }
 }
@@ -161,9 +165,17 @@ pub fn total_evaluate<F: PrimeField>(mut points: Vec<F>, evaluations: Vec<F>) ->
     hypercube.iter().map(|point| point.result).collect() // Return final results
 }
 
-pub fn add_polynomials<F: PrimeField>(a: MultilinearPolynomial<F>, b: MultilinearPolynomial<F>) -> MultilinearPolynomial<F> {
+pub fn add_polynomials<F: PrimeField>(
+    a: MultilinearPolynomial<F>,
+    b: MultilinearPolynomial<F>,
+) -> MultilinearPolynomial<F> {
     assert!(a.coefficients.len() == b.coefficients.len());
-    let summed_poly = a.coefficients.iter().zip(b.coefficients.iter()).map(|(a, b)| *a + *b).collect();
+    let summed_poly = a
+        .coefficients
+        .iter()
+        .zip(b.coefficients.iter())
+        .map(|(a, b)| *a + *b)
+        .collect();
     MultilinearPolynomial::new(summed_poly)
 }
 
@@ -306,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_mul () {
+    fn test_scalar_mul() {
         let poly = MultilinearPolynomial::new(vec![Fq::from(1), Fq::from(2)]);
         let scalar_mul = poly.scalar_mul(Fq::from(3));
         let expected = MultilinearPolynomial::new(vec![Fq::from(3), Fq::from(6)]);

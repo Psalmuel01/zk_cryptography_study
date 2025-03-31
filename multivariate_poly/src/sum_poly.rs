@@ -9,7 +9,9 @@ pub struct SumPoly<F: PrimeField> {
 impl<F: PrimeField> SumPoly<F> {
     pub fn new(product_polys: Vec<ProductPoly<F>>) -> Self {
         assert!(
-            product_polys.iter().all(|poly| poly.degree() == product_polys[0].degree()),
+            product_polys
+                .iter()
+                .all(|poly| poly.degree() == product_polys[0].degree()),
             "All polynomials must be of the same degree"
         );
         Self { product_polys }
@@ -41,11 +43,16 @@ impl<F: PrimeField> SumPoly<F> {
             })
             .collect();
 
-        Self { product_polys: partials }
+        Self {
+            product_polys: partials,
+        }
     }
 
     pub fn sum_reduce(&mut self) -> MultilinearPolynomial<F> {
-        assert!(self.product_polys.len() > 1, "More than one polynomial is required");
+        assert!(
+            self.product_polys.len() > 1,
+            "More than one polynomial is required"
+        );
         let first_product = &self.product_polys[0].product_reduce();
         let mut resultant_values = first_product.coefficients.clone();
 

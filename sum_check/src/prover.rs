@@ -77,12 +77,17 @@ pub(crate) fn split_and_sum<F: PrimeField>(poly_coeff: &Vec<F>) -> [F; 2] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_bn254::Fq;
+    use field_tracker::{end_tscope, print_summary, start_tscope, summary, Ft};
+    type Fq = Ft!(ark_bn254::Fq);
+    // use ark_bn254::Fq;
 
     #[test]
     fn test_split_and_sum() {
         let poly_coeff = vec![Fq::from(1), Fq::from(2), Fq::from(3), Fq::from(4)];
-        let result = split_and_sum(&poly_coeff);
-        assert_eq!(result, [Fq::from(3), Fq::from(7)]);
+        let eval_points = vec![Fq::from(1); 1 << 20];
+
+        let result = split_and_sum(&eval_points);
+        assert_eq!(result, [Fq::from((1 << 20) / 2), Fq::from((1 << 20) / 2)]);
+        print_summary!();
     }
 }

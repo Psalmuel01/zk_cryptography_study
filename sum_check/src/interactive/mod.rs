@@ -80,10 +80,12 @@ impl<F: PrimeField> SumCheck<F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::to_field;
-
     use super::*;
     use ark_bn254::Fq;
+
+    pub(crate) fn to_field(input: Vec<u64>) -> Vec<Fq> {
+        input.into_iter().map(|v| Fq::from(v)).collect()
+    }
 
     #[test]
     fn test_sum_check() {

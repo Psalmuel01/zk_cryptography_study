@@ -1,3 +1,3 @@
 pub mod circuit;
-pub mod sumcheck;
 pub mod gkr;
+pub mod sumcheck;
