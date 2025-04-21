@@ -23,7 +23,7 @@ pub fn partial_prove<F: PrimeField>(
     claimed_sum: F,
     transcript: &mut Transcript<Keccak256, F>,
 ) -> PartialProof<F> {
-    // transcript.absorb(initial_poly.convert_to_bytes().as_slice());
+    // transcript.absorb(sum_poly.convert_to_bytes().as_slice());
     transcript.absorb(claimed_sum.into_bigint().to_bytes_be().as_slice());
 
     let mut round_polys = Vec::new();
@@ -35,11 +35,11 @@ pub fn partial_prove<F: PrimeField>(
         let round_split = split_and_sum(current_poly.clone());
 
         let x_values: Vec<F> = (0..=sum_poly.degree()).map(|i| F::from(i as u64)).collect();
-        // let y_values: Vec<F> = round_split;
+        let y_values: Vec<F> = round_split;
 
         let points: Vec<(F, F)> = x_values
             .iter()
-            .zip(round_split.iter())
+            .zip(y_values.iter())
             .map(|(x, y)| (*x, *y))
             .collect();
 
@@ -57,10 +57,6 @@ pub fn partial_prove<F: PrimeField>(
         println!("challenge_prover: {}", challenge);
     }
 
-    println!("challengess: {:?}", random_challenges);
-    dbg!(claimed_sum);
-    dbg!(&round_polys);
-
     PartialProof {
         claimed_sum: claimed_sum,
         round_polys: round_polys,
@@ -72,7 +68,7 @@ pub fn partial_verify<F: PrimeField>(
     proof: &PartialProof<F>,
     transcript: &mut Transcript<Keccak256, F>,
 ) -> PartialVerif<F> {
-    // transcript.absorb(initial_poly.convert_to_bytes().as_slice());
+    // transcript.absorb(sum_poly.convert_to_bytes().as_slice());
     transcript.absorb(proof.claimed_sum.into_bigint().to_bytes_be().as_slice());
 
     let mut current_claimed_sum = proof.claimed_sum;
@@ -93,9 +89,6 @@ pub fn partial_verify<F: PrimeField>(
 
         current_claimed_sum = round_poly.evaluate(challenge);
         challenges.push(challenge);
-
-        dbg!(current_claimed_sum);
-        dbg!(round_poly.evaluate(challenge));
     }
 
     PartialVerif {
@@ -155,7 +148,7 @@ mod tests {
         let mut prover_transcript = Transcript::<Keccak256, Fq>::init(Keccak256::default());
         let mut verifier_transcript = Transcript::<Keccak256, Fq>::init(Keccak256::default());
 
-        let proof = partial_prove(sum_poly, Fq::from(13), &mut prover_transcript);
+        let proof = partial_prove(sum_poly.clone(), Fq::from(13), &mut prover_transcript);
         dbg!(&proof);
         let verify = partial_verify(&proof, &mut verifier_transcript);
         assert_eq!(verify.is_proof_valid, true);

@@ -10,9 +10,9 @@ mod test {
     type Fq = Ft!(ark_bn254::Fq);
     // use ark_bn254::Fq;
 
-    pub(crate) fn to_field(input: Vec<u64>) -> Vec<Fq> {
-        input.into_iter().map(|v| Fq::from(v)).collect()
-    }
+    // pub(crate) fn to_field(input: Vec<u64>) -> Vec<Fq> {
+    //     input.into_iter().map(|v| Fq::from(v)).collect()
+    // }
 
     #[test]
     fn test_sumcheck() {
