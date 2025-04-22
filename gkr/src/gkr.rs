@@ -62,17 +62,17 @@ pub fn prove<F: PrimeField>(circuit: &mut Circuit<F>) -> Proof<F> {
         sumcheck_proofs.push(sumcheck_proof.clone());
 
         if layer_index < circuit.outputs.len() - 1 {
-            let challenges = sumcheck_proof.random_challenges;
+            let random_challenges = sumcheck_proof.random_challenges;
             let w_b = circuit.w_i_polynomial(layer_index + 1);
             let w_c = w_b.clone();
 
-            let (wb_eval, wc_eval) = eval_wb_wc(&w_b, &w_c, &challenges);
+            let (wb_eval, wc_eval) = eval_wb_wc(&w_b, &w_c, &random_challenges);
             wb_evals.push(wb_eval);
             wc_evals.push(wc_eval);
 
             // use the randomness from the sumcheck proof, split into two vec! for rb and rc
-            let middle = challenges.len() / 2;
-            let (new_rb_values, new_rc_values) = challenges.split_at(middle);
+            let middle = random_challenges.len() / 2;
+            let (new_rb_values, new_rc_values) = random_challenges.split_at(middle);
             rb_values = new_rb_values.to_vec();
             rc_values = new_rc_values.to_vec();
 
@@ -124,14 +124,14 @@ pub fn verify<F: PrimeField>(proof: Proof<F>, circuit: &mut Circuit<F>) -> bool 
 
         let wb_eval;
         let wc_eval;
-        let challenges = sumcheck_verif.random_challenges;
+        let random_challenges = sumcheck_verif.random_challenges;
 
         if layer_index < circuit.outputs.len() - 1 {
             (wb_eval, wc_eval) = (proof.wb_evals[layer_index], proof.wc_evals[layer_index]);
         } else {
             let w_b = MultilinearPolynomial::new(circuit.inputs.clone());
             let w_c = w_b.clone();
-            (wb_eval, wc_eval) = eval_wb_wc(&w_b, &w_c, &challenges);
+            (wb_eval, wc_eval) = eval_wb_wc(&w_b, &w_c, &random_challenges);
         }
 
         let expected_claim;
@@ -141,7 +141,7 @@ pub fn verify<F: PrimeField>(proof: Proof<F>, circuit: &mut Circuit<F>) -> bool 
                 circuit,
                 layer_index,
                 challenge_a,
-                &challenges,
+                &random_challenges,
                 wb_eval,
                 wc_eval,
             )
@@ -150,7 +150,7 @@ pub fn verify<F: PrimeField>(proof: Proof<F>, circuit: &mut Circuit<F>) -> bool 
                 circuit,
                 layer_index,
                 &prev_challenges,
-                &challenges,
+                &random_challenges,
                 wb_eval,
                 wc_eval,
                 alpha,
@@ -162,7 +162,7 @@ pub fn verify<F: PrimeField>(proof: Proof<F>, circuit: &mut Circuit<F>) -> bool 
             return false;
         }
 
-        prev_challenges = challenges;
+        prev_challenges = random_challenges;
 
         transcript.absorb(&wb_eval.into_bigint().to_bytes_be().as_slice());
         alpha = transcript.squeeze();
@@ -179,10 +179,10 @@ pub fn verify<F: PrimeField>(proof: Proof<F>, circuit: &mut Circuit<F>) -> bool 
 pub fn eval_wb_wc<F: PrimeField>(
     wb_poly: &MultilinearPolynomial<F>,
     wc_poly: &MultilinearPolynomial<F>,
-    challenges: &Vec<F>,
+    random_challenges: &Vec<F>,
 ) -> (F, F) {
-    let middle = challenges.len() / 2;
-    let (rb_values, rc_values) = challenges.split_at(middle);
+    let middle = random_challenges.len() / 2;
+    let (rb_values, rc_values) = random_challenges.split_at(middle);
 
     let wb_poly_evaluated = wb_poly.evaluate(&rb_values.to_vec());
     let wc_poly_evaluated = wc_poly.evaluate(&rc_values.to_vec());
@@ -193,19 +193,19 @@ pub fn eval_wb_wc<F: PrimeField>(
 pub fn compute_initial_claim<F: PrimeField>(
     circuit: &mut Circuit<F>,
     layer_index: usize,
-    challenge_ra: F,
-    challenges: &Vec<F>,
+    challenge_a: F,
+    random_challenges: &Vec<F>,
     wb_eval: F,
     wc_eval: F,
 ) -> F {
     let (add_i_poly, mul_i_poly) = circuit.add_i_n_mul_i_arrays(layer_index);
     let (add_i_bc, mul_i_bc) = (
-        add_i_poly.partial_evaluate(0, challenge_ra),
-        mul_i_poly.partial_evaluate(0, challenge_ra),
+        add_i_poly.partial_evaluate(0, challenge_a),
+        mul_i_poly.partial_evaluate(0, challenge_a),
     );
 
-    let add_r = add_i_bc.evaluate(challenges);
-    let mul_r = mul_i_bc.evaluate(challenges);
+    let add_r = add_i_bc.evaluate(random_challenges);
+    let mul_r = mul_i_bc.evaluate(random_challenges);
 
     (add_r * (wb_eval + wc_eval)) + (mul_r * (wb_eval * wc_eval))
 }
@@ -214,7 +214,7 @@ pub fn compute_folded_claim<F: PrimeField>(
     circuit: &mut Circuit<F>,
     layer_index: usize,
     prev_challenges: &Vec<F>,
-    challenges: &Vec<F>,
+    random_challenges: &Vec<F>,
     wb_eval: F,
     wc_eval: F,
     alpha: F,
@@ -231,8 +231,8 @@ pub fn compute_folded_claim<F: PrimeField>(
         layer_index,
     );
 
-    let add_r = new_add_i.evaluate(challenges);
-    let mul_r = new_mul_i.evaluate(challenges);
+    let add_r = new_add_i.evaluate(random_challenges);
+    let mul_r = new_mul_i.evaluate(random_challenges);
 
     (add_r * (wb_eval + wc_eval)) + (mul_r * (wb_eval * wc_eval))
 }
