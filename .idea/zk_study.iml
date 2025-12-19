@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/gkr/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/kzg/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/multivariate_poly/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/shamir_secret_sharing/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/sum_check/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/univariate_poly/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/fft/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

@@ -169,7 +169,7 @@ pub fn add_polynomials<F: PrimeField>(
     a: MultilinearPolynomial<F>,
     b: MultilinearPolynomial<F>,
 ) -> MultilinearPolynomial<F> {
-    assert!(a.coefficients.len() == b.coefficients.len());
+    assert_eq!(a.coefficients.len(), b.coefficients.len());
     let summed_poly = a
         .coefficients
         .iter()
