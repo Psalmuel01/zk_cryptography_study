@@ -28,9 +28,11 @@ impl Complex {
     }
 }
 
-// Recursive FFT from scratch!
 fn fft(a: &[Complex], inverse: bool) -> Vec<Complex> {
     let n = a.len();
+    if n == 0 || !n.is_power_of_two() {
+        panic!("FFT input length must be a power of 2 and non-zero");
+    }
     if n <= 1 {
         return a.to_vec();
     }
@@ -73,32 +75,41 @@ fn multiply_polynomials(p1: &[f64], p2: &[f64]) -> Vec<f64> {
     // Pad to power of 2 with zeros
     let mut a: Vec<Complex> = p1.iter().map(|&x| Complex::new(x, 0.0)).collect();
     a.resize(n, Complex::new(0.0, 0.0));
+    println!("a is {:?}", a);
 
     let mut b: Vec<Complex> = p2.iter().map(|&x| Complex::new(x, 0.0)).collect();
     b.resize(n, Complex::new(0.0, 0.0));
+    println!("b is {:?}", b);
 
     // Forward FFT
-    let a_fft = fft(&a, false);
-    let b_fft = fft(&b, false);
+    let a_fft = fft(&a, true);
+    let b_fft = fft(&b, true);
+    println!("a_fft is {:?}", a_fft);
+    println!("b_fft is {:?}", b_fft);
 
     // Point-wise multiply
     let mut prod_fft = vec![Complex::new(0.0, 0.0); n];
     for i in 0..n {
         prod_fft[i] = a_fft[i].mul(b_fft[i]);
     }
+    println!("prod_fft is {:?}", prod_fft);
 
     // Inverse FFT
-    let prod = fft(&prod_fft, true);
+    let prod = fft(&prod_fft, false);
+    println!("prod is {:?}", prod);
 
     // Normalize and round to integers
     let mut result: Vec<f64> = prod.iter()
         .map(|c| (c.re / n as f64).round())
         .collect();
+    println!("result is {:?}", result);
 
     // Trim trailing zeros
     while result.len() > 1 && result.last().unwrap().abs() < 1e-6 {
         result.pop();
     }
+    println!("result is {:?}", result);
+
 
     result
 }
@@ -111,4 +122,25 @@ fn main() {
 
     println!("Product: {:?}", product);
     // Prints: [4.0, 13.0, 22.0, 15.0]  Yay!
+
+    // let complex1 = Complex::new(2.0, -1.0);
+    // let complex2 = Complex::new(2.0, 1.0);
+    // let sum = complex1.add(complex2);
+    // let prod = complex1.mul(complex2);
+    // println!("Sum: {:?}", sum);
+    // println!("Product: {:?}", prod);
+    //
+    // // Test example
+    // let input = vec![
+    //     Complex::new(1.0, 0.0),
+    //     Complex::new(2.0, 0.0),
+    //     Complex::new(3.0, 0.0),
+    //     Complex::new(4.0, 0.0),
+    // ];
+    // let fft_result = fft(&input, false);
+    // let ifft_result = fft(&fft_result, true);
+    // println!("Input: {:?}", input);
+    // println!("FFT: {:?}", fft_result);
+    // println!("IFFT (should match input): {:?}", ifft_result);
+
 }
