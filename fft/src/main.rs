@@ -26,6 +26,14 @@ impl Complex {
             self.re * other.im + self.im * other.re,
         )
     }
+
+    fn div(self, other: Self) -> Self {
+        let denom = other.re * other.re + other.im * other.im;
+        Complex::new(
+            (self.re * other.re + self.im * other.im) / denom,
+            (self.im * other.re - self.re * other.im)/ denom
+        )
+    }
 }
 
 fn fft(a: &[Complex], inverse: bool) -> Vec<Complex> {
@@ -45,7 +53,7 @@ fn fft(a: &[Complex], inverse: bool) -> Vec<Complex> {
     let odd_fft = fft(&odd, inverse);
 
     // Twiddle factors
-    let sign = if inverse { 1.0 } else { -1.0 };
+    let sign = if inverse { -1.0 } else { 1.0 };
     let mut wk = vec![Complex::new(0.0, 0.0); n / 2];
     for k in 0..n/2 {
         let angle = sign * 2.0 * PI * k as f64 / n as f64;
@@ -75,43 +83,68 @@ fn multiply_polynomials(p1: &[f64], p2: &[f64]) -> Vec<f64> {
     // Pad to power of 2 with zeros
     let mut a: Vec<Complex> = p1.iter().map(|&x| Complex::new(x, 0.0)).collect();
     a.resize(n, Complex::new(0.0, 0.0));
-    println!("a is {:?}", a);
 
     let mut b: Vec<Complex> = p2.iter().map(|&x| Complex::new(x, 0.0)).collect();
     b.resize(n, Complex::new(0.0, 0.0));
-    println!("b is {:?}", b);
 
     // Forward FFT
-    let a_fft = fft(&a, true);
-    let b_fft = fft(&b, true);
-    println!("a_fft is {:?}", a_fft);
-    println!("b_fft is {:?}", b_fft);
+    let a_fft = fft(&a, false);
+    let b_fft = fft(&b, false);
 
     // Point-wise multiply
     let mut prod_fft = vec![Complex::new(0.0, 0.0); n];
     for i in 0..n {
         prod_fft[i] = a_fft[i].mul(b_fft[i]);
     }
-    println!("prod_fft is {:?}", prod_fft);
 
     // Inverse FFT
-    let prod = fft(&prod_fft, false);
-    println!("prod is {:?}", prod);
+    let prod = fft(&prod_fft, true);
 
-    // Normalize and round to integers
+    // Normalize (divide by n) and round to integers
     let mut result: Vec<f64> = prod.iter()
         .map(|c| (c.re / n as f64).round())
         .collect();
-    println!("result is {:?}", result);
 
     // Trim trailing zeros
     while result.len() > 1 && result.last().unwrap().abs() < 1e-6 {
         result.pop();
     }
-    println!("result is {:?}", result);
 
 
     result
+}
+
+fn divide_by_linear(poly: &[f64], z: f64) -> Vec<f64> {
+    let n_orig = poly.len() - 1; // degree after division
+    let mut n = 1;
+    while n <= poly.len() {
+        n *= 2;
+    }
+
+    // pad polynomial
+    let mut a: Vec<Complex> = poly .iter().map(|&x| Complex::new(x, 0.0)).collect();
+    a.resize(n, Complex::new(0.0, 0.0));
+
+    // run fft on a
+    let a_fft = fft(&a, false);
+
+    // divide evaluations
+    let mut q_fft = vec![Complex::new(0.0, 0.0); n];
+    for i in 0..n {
+        let angle = 2.0 * PI * i as f64 / n as f64;
+        let wi = Complex::new(angle.cos(), angle.sin());
+        let denom = wi.sub(Complex::new(z, 0.0));
+        q_fft[i] = a_fft[i].div(denom)
+    }
+
+    // inverse fft
+    let q = fft(&q_fft, true);
+
+    // normalize and trim
+    q.iter()
+        .take(n_orig)
+        .map(|c| c.re / n as f64)
+        .collect()
 }
 
 fn main() {
@@ -123,24 +156,18 @@ fn main() {
     println!("Product: {:?}", product);
     // Prints: [4.0, 13.0, 22.0, 15.0]  Yay!
 
-    // let complex1 = Complex::new(2.0, -1.0);
-    // let complex2 = Complex::new(2.0, 1.0);
-    // let sum = complex1.add(complex2);
-    // let prod = complex1.mul(complex2);
-    // println!("Sum: {:?}", sum);
-    // println!("Product: {:?}", prod);
-    //
-    // // Test example
-    // let input = vec![
-    //     Complex::new(1.0, 0.0),
-    //     Complex::new(2.0, 0.0),
-    //     Complex::new(3.0, 0.0),
-    //     Complex::new(4.0, 0.0),
-    // ];
-    // let fft_result = fft(&input, false);
-    // let ifft_result = fft(&fft_result, true);
-    // println!("Input: {:?}", input);
-    // println!("FFT: {:?}", fft_result);
-    // println!("IFFT (should match input): {:?}", ifft_result);
+    let poly3 = vec![-6.0, -1.0, 2.0]; // -6 -x + 2x²
+    let z = 2.0; // x - 2
+    let quotient = divide_by_linear(&poly3, z);
+    println!("Quotient: {:?}", quotient);
+    // Prints: [3.0, 2.0]  => 3 + 2x
 
+    let complex1 = Complex::new(2.0, -1.0);
+    let complex2 = Complex::new(2.0, 1.0);
+    let sum = complex1.add(complex2);
+    let prod = complex1.mul(complex2);
+    let div = complex1.div(complex2);
+    println!("Sum: {:?}", sum);
+    println!("Product: {:?}", prod);
+    println!("Division: {:?}", div);
 }
