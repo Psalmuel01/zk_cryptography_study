@@ -56,6 +56,7 @@ impl<T:FftField> Polynomial<T> {
             y[j] = ye[j] + wj * yo[j];
             y[j + (n / 2)] = ye[j] - wj * yo[j];
         });
+        dbg!(y.clone());
 
         y
     }
@@ -82,11 +83,13 @@ mod test {
 
     #[test]
     pub fn test_fft_and_ifft() {
-        let coefficients = vec![Fr::from(5), Fr::from(3), Fr::from(2), Fr::from(1)];
+        // let coefficients = vec![Fr::from(5), Fr::from(3), Fr::from(2), Fr::from(1)];
+        let coefficients2 = vec![Fr::from(4), Fr::from(5), Fr::from(0), Fr::from(0)];
 
-        let values = Polynomial::convert_to_evaluations(&coefficients);
+        let values = Polynomial::convert_to_evaluations(&coefficients2);
+        // dbg!(&values);
         let result_coefficients = Polynomial::convert_to_coefficents(&values);
 
-        assert_eq!(result_coefficients, coefficients,)
+        assert_eq!(result_coefficients, coefficients2)
     }
 }
